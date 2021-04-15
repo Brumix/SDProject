@@ -28,3 +28,12 @@ hs_err_pid*
 .idea/**
 lib/**
 out/**
+
+
+# Scripts
+
+runscripts_rmi/**
+runscripts_rmq/**
+
+
+

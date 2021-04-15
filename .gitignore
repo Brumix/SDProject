@@ -32,8 +32,8 @@ out/**
 
 # Scripts
 
-edu/ufp/inf/sd/project/runscripts_rmi/**
-edu/ufp/inf/sd/project/runscripts_rmq/**
+**/runscripts_rmi/**
+**/runscripts_rmq/**
 
 
 

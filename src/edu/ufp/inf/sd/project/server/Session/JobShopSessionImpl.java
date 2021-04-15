@@ -26,6 +26,7 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
     }
 
 
+
     public int runTS(String jsspInstance) throws RemoteException {
 
         TabuSearchJSSP ts = new TabuSearchJSSP(jsspInstance);

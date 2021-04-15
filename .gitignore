@@ -29,6 +29,8 @@ hs_err_pid*
 lib/**
 out/**
 
+#iml file
+SDProject.iml
 
 # Scripts
 

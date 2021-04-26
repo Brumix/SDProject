@@ -3,6 +3,8 @@ package edu.ufp.inf.sd.project.client;
 import edu.ufp.inf.sd.project.server.Authentication.Factory.JobShopFactoryRI;
 import edu.ufp.inf.sd.project.server.Models.User;
 import edu.ufp.inf.sd.project.server.Session.JobShopSessionRI;
+import edu.ufp.inf.sd.project.util.geneticalgorithm.CrossoverStrategies;
+import edu.ufp.inf.sd.project.util.geneticalgorithm.GeneticAlgorithmJSSP;
 import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
 
 import java.rmi.NotBoundException;
@@ -13,7 +15,7 @@ import java.util.logging.Logger;
 
 public class WorkerImpl implements WorkerRI {
 
-    private final String jsspInstancePath = "edu/ufp/inf/sd/project/data/";
+    private final String jsspInstancePath = "edu/ufp/inf/sd/project/data/abz5.txt";
     /**
      * Remote interface that will hold the Servant proxy
      */
@@ -65,7 +67,7 @@ public class WorkerImpl implements WorkerRI {
 
             //============ Call TS remote service ============
 
-            int makespan = jobShopSessionRI.runTS(jsspInstancePath + "abz5.txt");
+            int makespan = jobShopSessionRI.runTS(jsspInstancePath);
             Logger.getLogger(this.getClass().getName()).log(Level.INFO,
                     "[TS] Makespan for {0} = {1}",
                     new Object[]{jsspInstancePath, String.valueOf(makespan)});
@@ -73,14 +75,14 @@ public class WorkerImpl implements WorkerRI {
             jobShopSessionRI.logout();
 
             //============ Call GA ============
-           /* String queue = "jssp_ga";
+            String queue = "jssp_ga";
             String resultsQueue = queue + "_results";
             CrossoverStrategies strategy = CrossoverStrategies.ONE;
             Logger.getLogger(this.getClass().getName()).log(Level.INFO,
                     "GA is running for {0}, check queue {1}",
                     new Object[]{jsspInstancePath, resultsQueue});
             GeneticAlgorithmJSSP ga = new GeneticAlgorithmJSSP(jsspInstancePath, queue, strategy);
-            ga.run();*/
+            ga.run();
 
         } catch (RemoteException ex) {
             Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);

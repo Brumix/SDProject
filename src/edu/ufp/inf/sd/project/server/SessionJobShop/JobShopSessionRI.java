@@ -5,6 +5,7 @@ import java.rmi.RemoteException;
 
 public interface JobShopSessionRI extends Remote {
 
+    void print(String msg) throws RemoteException;
     void logout() throws RemoteException;
     int runTS(String jsspInstance) throws RemoteException;
 }

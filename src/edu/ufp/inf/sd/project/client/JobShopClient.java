@@ -19,11 +19,9 @@ import java.util.logging.Logger;
  * @author Rui S. Moreira
  * @version 3.0
  */
-public class JobShopClient {
+public class jobShopClient {
 
-
-
-    public JobShopClient(String args[]) {
+    public jobShopClient(String args[]) {
         try {
             //List ans set args
             SetupContextRMI.printArgs(this.getClass().getName(), args);
@@ -38,7 +36,7 @@ public class JobShopClient {
              new WorkerImpl(contextRMI).playService();
 
         } catch (RemoteException e) {
-            Logger.getLogger(JobShopClient.class.getName()).log(Level.SEVERE, null, e);
+            Logger.getLogger(jobShopClient.class.getName()).log(Level.SEVERE, null, e);
         }
     }
 
@@ -48,7 +46,7 @@ public class JobShopClient {
             System.exit(-1);
         } else {
             //1. ============ Setup client RMI context ============
-            new JobShopClient(args);
+            new jobShopClient(args);
 
         }
     }

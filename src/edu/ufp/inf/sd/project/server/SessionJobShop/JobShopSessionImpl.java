@@ -20,6 +20,11 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
     }
 
     @Override
+    public void print(String msg) throws RemoteException {
+        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "[Session] = {0}", new Object[]{msg});
+    }
+
+    @Override
     public void logout() throws RemoteException {
     jobShopFactoryImpl.remove(this.user.getName());
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "[" + user.getName() + "]" + "Logged out Successfully!");
@@ -35,5 +40,6 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
 
         return makespan;
     }
+
 
 }

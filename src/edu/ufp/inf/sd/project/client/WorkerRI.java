@@ -1,4 +1,11 @@
 package edu.ufp.inf.sd.project.client;
 
-public interface WorkerRI {
+import java.io.File;
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+public interface WorkerRI extends Remote {
+    void runTS() throws RemoteException;
+    void print(String msg) throws  RemoteException;
+    void giveTask(File file)throws  RemoteException;
 }

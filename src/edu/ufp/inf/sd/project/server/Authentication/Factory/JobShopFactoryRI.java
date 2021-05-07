@@ -1,7 +1,7 @@
 package edu.ufp.inf.sd.project.server.Authentication.Factory;
 
 import edu.ufp.inf.sd.project.server.Models.User;
-import edu.ufp.inf.sd.project.server.Session.JobShopSessionRI;
+import edu.ufp.inf.sd.project.server.SessionJobShop.JobShopSessionRI;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;

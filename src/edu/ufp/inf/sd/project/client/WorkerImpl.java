@@ -1,100 +1,64 @@
 package edu.ufp.inf.sd.project.client;
 
-import edu.ufp.inf.sd.project.server.Authentication.Factory.JobShopFactoryRI;
-import edu.ufp.inf.sd.project.server.Models.User;
-import edu.ufp.inf.sd.project.server.Session.JobShopSessionRI;
-import edu.ufp.inf.sd.project.util.geneticalgorithm.CrossoverStrategies;
-import edu.ufp.inf.sd.project.util.geneticalgorithm.GeneticAlgorithmJSSP;
-import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
+import edu.ufp.inf.sd.project.util.tabusearch.TabuSearchJSSP;
 
-import java.rmi.NotBoundException;
+import java.io.File;
+import java.io.FileWriter;
 import java.rmi.RemoteException;
-import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class WorkerImpl implements WorkerRI {
+public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnable {
 
-    private final String jsspInstancePath = "edu/ufp/inf/sd/project/data/abz5.txt";
-    /**
-     * Remote interface that will hold the Servant proxy
-     */
-    SetupContextRMI contextRMI;
-    /**
-     * Context for connecting a RMI client MAIL_TO_ADDR a RMI Servant
-     */
-    private JobShopFactoryRI jobShopFactoryRI;
+    private File file;
+    private final String id;
+    private  String path;
+    private int resultTS;
 
+    public WorkerImpl(String id) throws RemoteException {
+        this.id = id;
+    }
 
-    public WorkerImpl(SetupContextRMI contextRMI) {
-        this.contextRMI = contextRMI;
-        lookupService();
+    public void runTS() throws RemoteException {
+        TabuSearchJSSP ts = new TabuSearchJSSP(this.path);
+        int makespan = ts.run();
+        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "[TS] Makespan for {0} = {1}", new Object[]{this.path, String.valueOf(makespan)});
+        this.resultTS=makespan;
+    }
+
+    public void print(String msg) throws RemoteException {
+        System.out.println(msg);
+    }
+
+    @Override
+    public void giveTask(File file) throws RemoteException {
+        this.file = file;
+        readFile();
+        runTS();
     }
 
 
-    private void lookupService() {
+    private void readFile() throws RemoteException {
         try {
-            //Get proxy MAIL_TO_ADDR rmiregistry
-            Registry registry = contextRMI.getRegistry();
-            //Lookup service on rmiregistry and wait for calls
-            if (registry != null) {
-                //Get service url (including servicename)
-                String serviceUrl = contextRMI.getServicesUrl(0);
-                Logger.getLogger(this.getClass().getName()).log(Level.INFO, "going MAIL_TO_ADDR lookup service @ {0}", serviceUrl);
-
-                //============ Get proxy MAIL_TO_ADDR HelloWorld service ============
-                jobShopFactoryRI = (JobShopFactoryRI) registry.lookup(serviceUrl);
-            } else {
-                Logger.getLogger(this.getClass().getName()).log(Level.INFO, "registry not bound (check IPs). :(");
-                //registry = LocateRegistry.createRegistry(1099);
+            Scanner myReader = new Scanner(this.file);
+            String namefile = new File(" ").getAbsolutePath().trim()+this.id + ".txt";
+            this.path=namefile;
+            FileWriter myfile = new FileWriter(namefile);
+            StringBuilder data = new StringBuilder();
+            while (myReader.hasNextLine()) {
+                data.append(myReader.nextLine()+"\n");
             }
-        } catch (RemoteException | NotBoundException ex) {
-            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
+            myfile.write(data.toString());
+            myfile.close();
+        } catch (Exception e) {
+           e.printStackTrace();
         }
 
     }
 
-    public void playService() {
-        try {
-            //================== Remote Job Shop===============
-            this.jobShopFactoryRI.print("Remote Job Shop");
-
-            //================== Authentification ===============
-            User u = new User("Bruno", "Pereira");
-            this.jobShopFactoryRI.register(u);
-            JobShopSessionRI jobShopSessionRI = this.jobShopFactoryRI.login(u);
-            verifySession(jobShopSessionRI);
-
-            //============ Call TS remote service ============
-
-            int makespan = jobShopSessionRI.runTS(jsspInstancePath);
-            Logger.getLogger(this.getClass().getName()).log(Level.INFO,
-                    "[TS] Makespan for {0} = {1}",
-                    new Object[]{jsspInstancePath, String.valueOf(makespan)});
-
-            jobShopSessionRI.logout();
-
-            //============ Call GA ============
-            String queue = "jssp_ga";
-            String resultsQueue = queue + "_results";
-            CrossoverStrategies strategy = CrossoverStrategies.ONE;
-            Logger.getLogger(this.getClass().getName()).log(Level.INFO,
-                    "GA is running for {0}, check queue {1}",
-                    new Object[]{jsspInstancePath, resultsQueue});
-            GeneticAlgorithmJSSP ga = new GeneticAlgorithmJSSP(jsspInstancePath, queue, strategy);
-            ga.run();
-
-        } catch (RemoteException ex) {
-            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-
-    private void verifySession(JobShopSessionRI jobShopSessionRI) {
-        if (jobShopSessionRI == null) {
-            Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Login Unsuccessful");
-            System.exit(401);
-        }
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Login Successful");
-    }
-
+    @Override
+    public void run() {
+       }
 }

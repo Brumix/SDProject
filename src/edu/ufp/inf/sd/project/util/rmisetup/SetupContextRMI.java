@@ -1,4 +1,4 @@
-package edu.ufp.inf.sd.rmi.util.rmisetup;
+package edu.ufp.inf.sd.project.util.rmisetup;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;

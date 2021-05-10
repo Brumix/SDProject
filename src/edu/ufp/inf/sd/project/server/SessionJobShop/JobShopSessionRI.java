@@ -1,5 +1,6 @@
 package edu.ufp.inf.sd.project.server.SessionJobShop;
 
+import edu.ufp.inf.sd.project.client.WorkerRI;
 import edu.ufp.inf.sd.project.server.JobGroup.JobGroupRI;
 
 import java.io.File;
@@ -14,4 +15,5 @@ public interface JobShopSessionRI extends Remote {
     void executeJobGroup(int id) throws RemoteException;
     JobGroupRI getJobGroup(int id) throws  RemoteException;
     void printALL()throws RemoteException;
+    void sendResult(WorkerRI bestWorker, Integer integer)throws RemoteException;
 }

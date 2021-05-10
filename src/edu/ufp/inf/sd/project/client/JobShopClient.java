@@ -5,6 +5,7 @@ import edu.ufp.inf.sd.project.server.JobGroup.JobGroupRI;
 import edu.ufp.inf.sd.project.server.Models.User;
 import edu.ufp.inf.sd.project.server.SessionJobShop.JobShopSessionRI;
 import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
+import edu.ufp.inf.sd.rmi.util.threading.ThreadPool;
 
 import java.io.File;
 import java.rmi.NotBoundException;
@@ -29,17 +30,11 @@ import java.util.logging.Logger;
  * @version 3.0
  */
 public class JobShopClient {
-
     private SetupContextRMI contextRMI;
-
     private JobShopFactoryRI jobShopFactoryRI;
-
     private final String jsspInstancePath = "edu/ufp/inf/sd/project/data/abz5.txt";
-
     private int numbWorkers;
-
     private User user;
-
 
     public static void main(String[] args) {
         if (args != null && args.length < 2) {
@@ -48,9 +43,7 @@ public class JobShopClient {
         } else {
             //1. ============ Setup client RMI context ============
             JobShopClient jobShopClient = new JobShopClient(args);
-
             jobShopClient.lookupService();
-
             jobShopClient.playService();
         }
     }
@@ -63,9 +56,7 @@ public class JobShopClient {
             String registryPort = args[1];
             String serviceName = args[2];
             //Create a context for RMI setup
-
             this.contextRMI = new SetupContextRMI(this.getClass(), registryIP, registryPort, new String[]{serviceName});
-
             // Start a Client
         } catch (RemoteException e) {
             Logger.getLogger(JobShopClient.class.getName()).log(Level.SEVERE, null, e);
@@ -81,7 +72,6 @@ public class JobShopClient {
                 //Get service url (including servicename)
                 String serviceUrl = contextRMI.getServicesUrl(0);
                 Logger.getLogger(this.getClass().getName()).log(Level.INFO, "going MAIL_TO_ADDR lookup service @ {0}", serviceUrl);
-
                 //============ Get proxy MAIL_TO_ADDR HelloWorld service ============
                 this.jobShopFactoryRI = (JobShopFactoryRI) registry.lookup(serviceUrl);
             } else {
@@ -96,38 +86,33 @@ public class JobShopClient {
 
     public void playService() {
         try {
+            // todo delete
+            // todo 1
+            //  credits system
             //================== Remote Job Shop===============
             this.jobShopFactoryRI.print("Remote Job Shop");
             //================== Authentification ===============
             JobShopSessionRI jobShopSessionRI = login();
             jobShopSessionRI.print("Sou o client " + this.user.getName());
-
             //================== Workers ===============
             System.out.println("How many workers do you want to make available??");
             this.numbWorkers = new Scanner(System.in).nextInt();
+            ThreadPool threadPool = new ThreadPool(this.numbWorkers);
 
             //todo  fazer o worker em threadpool colocar o metodo run dentro do runTS, e o coordenador corre o runTs
             // implemtar os creditos
-
-
             //================== Create JobGroup ===============
             whatToDo(jobShopSessionRI);
-
             //==================Distribution of workers ===============
-            distributionOfWorkers(jobShopSessionRI, this.user.getName());
-
-
+            distributionOfWorkers(jobShopSessionRI, this.user.getName(),threadPool);
             jobShopSessionRI.executeJobGroup(1);
             //  jobShopSessionRI.logout();
-
             //============ Call TS remote service ============
             /*
             int makespan = jobShopSessionRI.runTS(jsspInstancePath);
             Logger.getLogger(this.getClass().getName()).log(Level.INFO,
                     "[TS] Makespan for {0} = {1}",
                     new Object[]{jsspInstancePath, String.valueOf(makespan)});
-
-
             //============ Call GA ============
             String queue = "jssp_ga";
             String resultsQueue = queue + "_results";
@@ -138,7 +123,6 @@ public class JobShopClient {
             GeneticAlgorithmJSSP ga = new GeneticAlgorithmJSSP(jsspInstancePath, queue, strategy);
             ga.run();
             */
-
         } catch (RemoteException ex) {
             Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
         }
@@ -148,7 +132,7 @@ public class JobShopClient {
         return jobShopSessionRI != null;
     }
 
-    private void distributionOfWorkers(JobShopSessionRI jobShopSessionRI, String nameU) {
+    private void distributionOfWorkers(JobShopSessionRI jobShopSessionRI, String nameU,ThreadPool threadPool) {
         int freeWorkers = this.numbWorkers;
         try {
             while (freeWorkers > 0) {
@@ -167,13 +151,12 @@ public class JobShopClient {
                 JobGroupRI jobGroup = jobShopSessionRI.getJobGroup(jgId);
                 if (jobGroup != null) {
                     for (int i = 0; i < workers; i++) {
-                        jobGroup.addWorker(new WorkerImpl(nameU + i));
+                        jobGroup.addWorker(new WorkerImpl(nameU + i,threadPool,jobGroup));
                     }
                     freeWorkers -= workers;
                 }
             }
         } catch (Exception e) {
-
             e.printStackTrace();
         }
     }
@@ -275,5 +258,4 @@ public class JobShopClient {
         }
         return files;
     }
-
 }

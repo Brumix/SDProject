@@ -12,4 +12,5 @@ public interface JobGroupRI extends Remote {
      String JobGroupStr() throws RemoteException;
      void execute()throws RemoteException;
      Boolean hasTask() throws RemoteException;
+     void getResultFromWorker(WorkerRI w, Integer result)throws RemoteException;
 }

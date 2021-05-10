@@ -4,13 +4,14 @@ import edu.ufp.inf.sd.project.server.Models.User;
 
 import java.util.ArrayList;
 
-public class DBMockup {
+public class  DBMockup {
     private final ArrayList<User> users = new ArrayList<>();
 
     private DBMockup instance;
 
     public DBMockup() {
         this.users.add(new User("guest", "guest"));
+        this.users.add(new User("test", "test"));
     }
 
     public void register(User u) {

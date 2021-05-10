@@ -1,5 +1,6 @@
 package edu.ufp.inf.sd.project.server.SessionJobShop;
 
+import edu.ufp.inf.sd.project.client.WorkerRI;
 import edu.ufp.inf.sd.project.server.Authentication.Factory.JobShopFactoryImpl;
 import edu.ufp.inf.sd.project.server.JobGroup.JobGroupImpl;
 import edu.ufp.inf.sd.project.server.JobGroup.JobGroupRI;
@@ -44,9 +45,8 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
     public int createJobGroup(File Jss) {
         try {
             this.id++;
-            JobGroupRI JG = new JobGroupImpl(this.id,Jss);
+            JobGroupRI JG = new JobGroupImpl(this.id,Jss,this);
             jobGroups.put(this.id, JG);
-            //criar thread
             return this.id;
         } catch (Exception e) {
             e.printStackTrace();
@@ -90,4 +90,10 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
             j.print();
         }
     }
+
+    @Override
+    public void sendResult(WorkerRI bestWorker, Integer integer) throws RemoteException{
+        System.out.println(integer);
+    }
+
 }

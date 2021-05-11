@@ -14,17 +14,21 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
     private final int id;
     private final JobShopSessionRI jobShopSession;
     private final File JSS;
+    private final int credits;
     private int MaxWorkers;
     private ArrayList<WorkerRI> observer = new ArrayList<>();
     private HashMap<WorkerRI, Integer> resultsWokers = new HashMap<>();
     private WorkerRI bestWorker;
 
-    public JobGroupImpl(int id, File JSS,JobShopSessionRI jobShopSession,int workers) throws RemoteException {
+
+    public JobGroupImpl(int id, File JSS,JobShopSessionRI jobShopSession,int workers,int credits) throws RemoteException {
         super();
         this.id = id;
         this.JSS = JSS;
         this.jobShopSession= jobShopSession;
         this.MaxWorkers = workers;
+        this.credits= credits;
+        System.out.println(this.credits);
     }
 
     @Override

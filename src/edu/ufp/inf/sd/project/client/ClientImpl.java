@@ -22,10 +22,12 @@ import java.util.logging.Logger;
 
 public class ClientImpl extends UnicastRemoteObject implements ClientRI {
 
+    private final String DATA_PATH = "/home/lenovo/IdeaProjects/SDProject/src/edu/ufp/inf/sd/project/data/";
     private SetupContextRMI contextRMI;
     private JobShopFactoryRI jobShopFactoryRI;
     private int numbWorkers;
     private int totalCredits = 0;
+    private HashMap<String, Integer> credits = new HashMap<>();
     private User user;
     private String jsspInstancePath;
 
@@ -61,6 +63,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
     // todo delete
     // todo? preserve workers when i give to most workers for a job
     // todo comunicate to the client the final result  (see function under)
+
     public void playService() {
         try {
 
@@ -76,6 +79,9 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
             this.numbWorkers = new Scanner(System.in).nextInt();
             ThreadPool threadPool = new ThreadPool(this.numbWorkers);
 
+            //================== TotalCredits ===============
+            System.out.println("How many credits do you want to spend??");
+            this.totalCredits = new Scanner(System.in).nextInt();
 
             //================== Create JobGroup ===============
             whatToDo(jobShopSessionRI);
@@ -85,14 +91,15 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
 
 
             //  jobShopSessionRI.logout();    //============ Call GA ============
-            String queue = "jssp_ga";
+        /*  String queue = "jssp_ga";
             String resultsQueue = queue + "_results";
             CrossoverStrategies strategy = CrossoverStrategies.ONE;
             Logger.getLogger(this.getClass().getName()).log(Level.INFO,
                     "GA is running for {0}, check queue {1}",
                     new Object[]{this.jsspInstancePath, resultsQueue});
+
             GeneticAlgorithmJSSP ga = new GeneticAlgorithmJSSP(this.jsspInstancePath, queue, strategy);
-            ga.run();
+            ga.run();*/
 
         } catch (RemoteException ex) {
             Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
@@ -203,7 +210,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
     }
 
     private void createJobGroup(JobShopSessionRI jobShopSessionRI) throws RemoteException {
-        int workersJob = 0;
+
         System.out.println("How many jobGroups do you want to create?");
         int jobs = new Scanner(System.in).nextInt();
         HashMap<Integer, String> files = listJobsFromFolder();
@@ -213,27 +220,29 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
             if (idFile >= 0 && idFile < files.size()) {
                 System.out.println("How many workers do you want to this job?");
                 int workers = new Scanner(System.in).nextInt();
-                workersJob += workers;
-                jobShopSessionRI.createJobGroup(new File(files.get(idFile)), workers);
-                this.jsspInstancePath=files.get(idFile);
+                String path = files.get(idFile);
+                if (getCredits(path, jobs, workers)) {
+                    jobShopSessionRI.createJobGroup(new File(path), workers,this.credits.get(path));
+                    this.jsspInstancePath = path;
+                }
             } else {
                 System.out.println("ID INVALID");
                 i--;
             }
         }
-        getCredits(jobs, workersJob);
+
     }
 
     private HashMap<Integer, String> listJobsFromFolder() {
         //todo how to fix absolute path
         //Creating a File object for directory
-        File directoryPath = new File("/home/hp/IdeaProjects/SDProject/src/edu/ufp/inf/sd/project/data");
+        File directoryPath = new File(DATA_PATH);
         HashMap<Integer, String> files = new HashMap<>();
         //List of all files and directories
         String[] contents = directoryPath.list();
         System.out.println("List of files and directories in the specified directory:");
         for (int i = 0; i < Objects.requireNonNull(contents).length; i++) {
-            files.put(i, "/home/hp/IdeaProjects/SDProject/src/edu/ufp/inf/sd/project/data/" + contents[i]);
+            files.put(i, DATA_PATH + contents[i]);
             System.out.println("INDEX:" + i + " for the job:" + contents[i]);
         }
         return files;
@@ -245,23 +254,55 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, w.whoIAm() + " com o resultado de " + result);
     }
 
-    private void getCredits(int Jobs, int workers) {
+    private boolean getCredits(String key, int Jobs, int workers) {
         int minCredits = (Jobs * 10) + workers;
         while (true) {
-            System.out.println("For the amount of Jobs and workers that you want you need at minimum " + minCredits + " credits");
+            System.out.println("For the amount of workers that you want for this job you need at minimum " + minCredits + " credits");
             System.out.println("Do you want to pay the exact amount press 1 other amount just say the number.");
             int credits = new Scanner(System.in).nextInt();
             if (credits == 1) {
-                this.totalCredits = minCredits;
-                break;
+                return analyzeCredits(key, minCredits);
             }
             if (credits < minCredits) {
-                System.out.println("Creditos Insuficientes");
+                System.out.println("Insufficient credits");
             } else {
-                this.totalCredits = credits;
-                break;
+                return analyzeCredits(key, credits);
+
             }
         }
+    }
+
+    private boolean analyzeCredits(String key, int credits) {
+        while (true) {
+            int leftCredits = this.totalCredits - credits - totalCreditsOffAllJG();
+            if (leftCredits < 0) {
+                System.out.println("You don`t have enough credits,you just have " + this.totalCredits + " you need at least more " + (-leftCredits )+ ":(");
+                System.out.println("you want to add more credits (0 ->no  1->yes) ?");
+                int choice = new Scanner(System.in).nextInt();
+                switch (choice) {
+                    case 0:
+                        return false;
+                    case 1:
+                        System.out.println("How many credits do you want to add?");
+                        int moreCredits = new Scanner(System.in).nextInt();
+                        this.totalCredits += moreCredits;
+                        break;
+                    default:
+                        System.out.println("Invalid Choice");
+                }
+            } else {
+                this.credits.put(key, credits);
+                return true;
+            }
+        }
+    }
+
+    private int totalCreditsOffAllJG() {
+        int total = 0;
+        for (int credit : this.credits.values()) {
+            total += credit;
+        }
+        return total;
     }
 
 

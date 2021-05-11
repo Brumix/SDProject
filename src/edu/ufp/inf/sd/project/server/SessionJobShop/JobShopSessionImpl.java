@@ -38,10 +38,10 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
     }
 
     @Override
-    public void createJobGroup(File Jss, int workers) {
+    public void createJobGroup(File Jss, int workers,int credits) {
         try {
             id++;
-            JobGroupRI JG = new JobGroupImpl(id, Jss, this, workers);
+            JobGroupRI JG = new JobGroupImpl(id, Jss, this, workers,credits);
             jobGroups.put(id, JG);
         } catch (Exception e) {
             e.printStackTrace();
@@ -71,6 +71,6 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
 
     @Override
     public void sendResult(WorkerRI bestWorker, int result) throws RemoteException {
-        System.out.println("The best result was" + result);
+        System.out.println("The best result was " + result);
     }
 }

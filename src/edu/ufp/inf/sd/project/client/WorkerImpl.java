@@ -1,6 +1,8 @@
 package edu.ufp.inf.sd.project.client;
 
 import edu.ufp.inf.sd.project.server.JobGroup.JobGroupRI;
+import edu.ufp.inf.sd.project.util.geneticalgorithm.CrossoverStrategies;
+import edu.ufp.inf.sd.project.util.geneticalgorithm.GeneticAlgorithmJSSP;
 import edu.ufp.inf.sd.project.util.tabusearch.TabuSearchJSSP;
 import edu.ufp.inf.sd.rmi.util.threading.ThreadPool;
 
@@ -27,8 +29,8 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
         this.jobGroup = jobGroupRI;
     }
 
-    public void runTS() throws RemoteException {
-        this.thread.execute(this);
+    public void runAlgorthim() throws RemoteException {
+        this.thread.execute(this::runGN);
     }
 
     public void print(String msg) throws RemoteException {
@@ -43,7 +45,7 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
     public void giveTask(File file) throws RemoteException {
         this.file = file;
         readFile();
-        runTS();
+        runAlgorthim();
     }
 
     private void readFile() throws RemoteException {
@@ -68,8 +70,7 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
         this.jobGroup.update(this, resultTS);
     }
 
-    @Override
-    public void run() {
+    public void runTS() {
         TabuSearchJSSP ts = new TabuSearchJSSP(this.path);
         ReentrantLock lock = new ReentrantLock();
         int makespan = ts.run();
@@ -86,6 +87,23 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
     }
 
     private void cleanUp() {
-       new File(this.path).delete();
+        new File(this.path).delete();
+    }
+
+    private void runGN() {
+        String queue = "jssp_ga";
+        String resultsQueue = queue + "_results";
+        CrossoverStrategies strategy = CrossoverStrategies.ONE;
+        Logger.getLogger(this.getClass().getName()).log(Level.INFO,
+                "GA is running for {0}, check queue {1}",
+                new Object[]{this.path, resultsQueue});
+
+        GeneticAlgorithmJSSP ga = new GeneticAlgorithmJSSP(this.path, queue, strategy);
+        ga.run();
+    }
+
+    @Override
+    public void run() {
+
     }
 }

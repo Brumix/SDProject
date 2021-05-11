@@ -35,6 +35,8 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
 import edu.ufp.inf.sd.project.producer.Producer;
 
+import java.nio.charset.StandardCharsets;
+
 
 public class Consumer {
 
@@ -73,7 +75,7 @@ public class Consumer {
             */
 
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-                String message = new String(delivery.getBody(), "UTF-8");
+                String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
                 System.out.println(" [x] Received '" + message + "'");
             };
             channel.basicConsume(resultsQueue, true, deliverCallback, consumerTag -> { });

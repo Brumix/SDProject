@@ -10,7 +10,7 @@ import java.rmi.RemoteException;
 public interface JobShopSessionRI extends Remote {
     void print(String msg) throws RemoteException;
     void logout() throws RemoteException;
-    void createJobGroup(File Jss,int workers)throws RemoteException;
+    void createJobGroup(File Jss,int workers,int credits)throws RemoteException;
     String listJobGroups()throws RemoteException;
     JobGroupRI getJobGroup(int id) throws  RemoteException;
     void printALL()throws RemoteException;

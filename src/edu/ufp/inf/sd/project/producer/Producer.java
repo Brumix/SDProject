@@ -6,6 +6,7 @@ import com.rabbitmq.client.ConnectionFactory;
 import edu.ufp.inf.sd.project.util.geneticalgorithm.CrossoverStrategies;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -85,7 +86,7 @@ public class Producer {
     }
 
     public static void sendMessage(Channel channel, String message) throws IOException {
-        channel.basicPublish("", QUEUE_NAME, null, message.getBytes("UTF-8"));
+        channel.basicPublish("", QUEUE_NAME, null, message.getBytes(StandardCharsets.UTF_8));
         System.out.println(" [x] Sent '" + message + "'");
     }
 }

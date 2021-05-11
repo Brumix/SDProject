@@ -4,6 +4,8 @@ import edu.ufp.inf.sd.project.server.Authentication.Factory.JobShopFactoryRI;
 import edu.ufp.inf.sd.project.server.JobGroup.JobGroupRI;
 import edu.ufp.inf.sd.project.server.Models.User;
 import edu.ufp.inf.sd.project.server.SessionJobShop.JobShopSessionRI;
+import edu.ufp.inf.sd.project.util.geneticalgorithm.CrossoverStrategies;
+import edu.ufp.inf.sd.project.util.geneticalgorithm.GeneticAlgorithmJSSP;
 import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
 import edu.ufp.inf.sd.rmi.util.threading.ThreadPool;
 
@@ -25,6 +27,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
     private int numbWorkers;
     private int totalCredits = 0;
     private User user;
+    private String jsspInstancePath;
 
 
     public ClientImpl(SetupContextRMI contextRMI) throws RemoteException {
@@ -55,11 +58,12 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
 
     }
 
+    // todo delete
+    // todo? preserve workers when i give to most workers for a job
+    // todo comunicate to the client the final result  (see function under)
     public void playService() {
         try {
-            // todo delete
-            // todo preserve workers when i give to most workers for a job
-            // todo see function above
+
             //================== Remote Job Shop===============
             this.jobShopFactoryRI.print("Remote Job Shop");
             //================== Authentification ===============
@@ -72,6 +76,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
             this.numbWorkers = new Scanner(System.in).nextInt();
             ThreadPool threadPool = new ThreadPool(this.numbWorkers);
 
+
             //================== Create JobGroup ===============
             whatToDo(jobShopSessionRI);
 
@@ -79,24 +84,16 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
             distributionOfWorkers(jobShopSessionRI, this.user.getName(), threadPool);
 
 
-
-            //  jobShopSessionRI.logout();
-            //============ Call TS remote service ============
-            /*
-            int makespan = jobShopSessionRI.runTS(jsspInstancePath);
-            Logger.getLogger(this.getClass().getName()).log(Level.INFO,
-                    "[TS] Makespan for {0} = {1}",
-                    new Object[]{jsspInstancePath, String.valueOf(makespan)});
-            //============ Call GA ============
+            //  jobShopSessionRI.logout();    //============ Call GA ============
             String queue = "jssp_ga";
             String resultsQueue = queue + "_results";
             CrossoverStrategies strategy = CrossoverStrategies.ONE;
             Logger.getLogger(this.getClass().getName()).log(Level.INFO,
                     "GA is running for {0}, check queue {1}",
-                    new Object[]{jsspInstancePath, resultsQueue});
-            GeneticAlgorithmJSSP ga = new GeneticAlgorithmJSSP(jsspInstancePath, queue, strategy);
+                    new Object[]{this.jsspInstancePath, resultsQueue});
+            GeneticAlgorithmJSSP ga = new GeneticAlgorithmJSSP(this.jsspInstancePath, queue, strategy);
             ga.run();
-            */
+
         } catch (RemoteException ex) {
             Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
         }
@@ -125,7 +122,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
                 JobGroupRI jobGroup = jobShopSessionRI.getJobGroup(jgId);
                 if (jobGroup != null) {
                     for (int i = 0; i < workers; i++) {
-                        jobGroup.addWorker(new WorkerImpl(nameU + i, threadPool, jobGroup));
+                        jobGroup.attach(new WorkerImpl(nameU + i, threadPool, jobGroup));
                     }
                     freeWorkers -= workers;
                 }
@@ -218,6 +215,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
                 int workers = new Scanner(System.in).nextInt();
                 workersJob += workers;
                 jobShopSessionRI.createJobGroup(new File(files.get(idFile)), workers);
+                this.jsspInstancePath=files.get(idFile);
             } else {
                 System.out.println("ID INVALID");
                 i--;

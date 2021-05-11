@@ -8,6 +8,7 @@ public class User implements Serializable {
     private final String pass;
 
 
+
     public User(String name, String pass) {
         this.name = name;
         this.pass = pass;
@@ -25,4 +26,5 @@ public class User implements Serializable {
     public String getPass() {
         return pass;
     }
+
 }

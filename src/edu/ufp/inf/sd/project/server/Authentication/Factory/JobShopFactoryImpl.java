@@ -1,6 +1,5 @@
 package edu.ufp.inf.sd.project.server.Authentication.Factory;
 
-import edu.ufp.inf.sd.project.client.ClientRI;
 import edu.ufp.inf.sd.project.server.Authentication.DataBase.DBMockup;
 import edu.ufp.inf.sd.project.server.Models.User;
 import edu.ufp.inf.sd.project.server.SessionJobShop.JobShopSessionImpl;
@@ -13,12 +12,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class JobShopFactoryImpl extends UnicastRemoteObject implements JobShopFactoryRI {
-    private HashMap<String, JobShopSessionRI> sessions = new HashMap<>();
+    private final HashMap<String, JobShopSessionRI> sessions = new HashMap<>();
     private DBMockup db;
 
     public JobShopFactoryImpl() throws RemoteException {
         super();
-        this.db = new DBMockup().getInstance();
+        this.db = DBMockup.getInstance();
     }
 
     @Override
@@ -34,7 +33,8 @@ public class JobShopFactoryImpl extends UnicastRemoteObject implements JobShopFa
 
     @Override
     public JobShopSessionRI login(User u) throws RemoteException {
-        if (db.exists(u)) {
+        System.out.println(u.toString());
+        if (db.exists(u) && !sessions.containsKey(u.getName())) {
             JobShopSessionRI jobShopSession = new JobShopSessionImpl(this, u);
             sessions.put(u.getName(), jobShopSession);
             Logger.getLogger(this.getClass().getName()).log(Level.INFO, "[" + u.getName() + "]" + "Session Created Successfully!");

@@ -36,7 +36,7 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
     }
 
     public String whoIAm() throws RemoteException {
-        return this.id +"com o trabalho" + this.path;
+        return this.id + "com o trabalho" + this.path;
     }
 
     @Override
@@ -64,8 +64,8 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
 
     }
 
-    private void sendResult(Integer resultTS) throws RemoteException{
-        this.jobGroup.getResultFromWorker(this, resultTS);
+    private void update(Integer resultTS) throws RemoteException {
+        this.jobGroup.update(this, resultTS);
     }
 
     @Override
@@ -76,13 +76,16 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "[TS] Makespan for {0} = {1}", new Object[]{this.path, String.valueOf(makespan)});
         try {
             lock.lock();
-            sendResult(makespan);
-            //lock.unlock();
-        }catch (RemoteException e){
+            update(makespan);
+        } catch (RemoteException e) {
             e.printStackTrace();
-        }finally {
+        } finally {
             lock.unlock();
+            cleanUp();
         }
+    }
 
+    private void cleanUp() {
+       new File(this.path).delete();
     }
 }

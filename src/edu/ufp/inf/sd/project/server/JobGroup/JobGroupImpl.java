@@ -15,7 +15,7 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
     private final JobShopSessionRI jobShopSession;
     private final File JSS;
     private int MaxWorkers;
-    private ArrayList<WorkerRI> workers = new ArrayList<>();
+    private ArrayList<WorkerRI> observer = new ArrayList<>();
     private HashMap<WorkerRI, Integer> resultsWokers = new HashMap<>();
     private WorkerRI bestWorker;
 
@@ -28,16 +28,12 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
     }
 
     @Override
-    /**
-     * simular a agregacao de um worker a um Jobgroup
-     */
-
-    public void addWorker(WorkerRI w) {
+   public void attach(WorkerRI w) {
         try {
             //todo check limit of workers
-            this.workers.add(w);
-            if (this.workers.size() == this.MaxWorkers)
-                this.execute();
+            this.observer.add(w);
+            if (this.observer.size() == this.MaxWorkers)
+                this.notifyall();
 
 
         } catch (Exception e) {
@@ -47,7 +43,7 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
 
     @Override
     public void print() {
-        System.out.println((long) workers.size());
+        System.out.println((long) observer.size());
     }
 
     @Override
@@ -56,14 +52,9 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
     }
 
     @Override
-    /**
-     * Seguimento do DP obeserver (notify all)
-     * Por os workers a trabalharem
-     */
-
-    public void execute() {
+    public void notifyall() {
         try {
-            for (WorkerRI w : this.workers) {
+            for (WorkerRI w : this.observer) {
                 w.giveTask(this.JSS);
             }
         } catch (Exception e) {
@@ -76,16 +67,15 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
         return this.JSS != null;
     }
 
-
-    public void getResultFromWorker(WorkerRI w, int result)throws RemoteException {
+    public void update(WorkerRI w, int result)throws RemoteException {
         resultsWokers.put(w, result);
-        if (resultsWokers.size() == workers.size()) {
-            int major = resultsWokers.get(this.workers.get(0));
+        if (resultsWokers.size() == observer.size()) {
+            int smallers = resultsWokers.get(this.observer.get(0));
             for (WorkerRI worker : resultsWokers.keySet()) {
                 int value=resultsWokers.get(worker);
-                if (value < major) {
+                if (value < smallers) {
                     this.bestWorker = worker;
-                    major =value;
+                    smallers =value;
                 }
             }
             sendResult();

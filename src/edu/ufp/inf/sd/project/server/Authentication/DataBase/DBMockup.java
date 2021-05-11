@@ -7,7 +7,7 @@ import java.util.ArrayList;
 public class  DBMockup {
     private final ArrayList<User> users = new ArrayList<>();
 
-    private DBMockup instance;
+    private static DBMockup instance;
 
     public DBMockup() {
         this.users.add(new User("guest", "guest"));
@@ -29,10 +29,10 @@ public class  DBMockup {
         return false;
     }
 
-    public DBMockup getInstance() {
-        if (this.instance == null)
-            this.instance = new DBMockup();
-        return this.instance;
+    public static DBMockup getInstance() {
+        if (instance == null)
+            instance = new DBMockup();
+        return instance;
     }
 
 }

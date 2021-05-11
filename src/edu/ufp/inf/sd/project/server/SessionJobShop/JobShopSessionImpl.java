@@ -17,8 +17,8 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
 
     private final JobShopFactoryImpl jobShopFactoryImpl;
     private final User user;
-    private  static final HashMap<Integer, JobGroupRI> jobGroups = new HashMap<>();
-    private  static Integer id = 0;
+    private static final HashMap<Integer, JobGroupRI> jobGroups = new HashMap<>();
+    private static Integer id = 0;
 
 
     public JobShopSessionImpl(JobShopFactoryImpl jobShopFactory, User user) throws RemoteException {
@@ -41,16 +41,13 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
     /**
      * criar um jobGroup
      */
-    //TODO createJobGroup
-    public int createJobGroup(File Jss) {
+    public void  createJobGroup(File Jss,int workers) {
         try {
-            this.id++;
-            JobGroupRI JG = new JobGroupImpl(this.id,Jss,this);
-            jobGroups.put(this.id, JG);
-            return this.id;
+            id++;
+            JobGroupRI JG = new JobGroupImpl(id, Jss, this,workers);
+            jobGroups.put(id, JG);
         } catch (Exception e) {
             e.printStackTrace();
-            return -1;
         }
     }
 
@@ -58,7 +55,6 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
     /**
      * listar todos os JobGroups
      */
-    //TODO listJobGroups
     public String listJobGroups() throws RemoteException {
         StringBuilder list = new StringBuilder();
         for (JobGroupRI jobGroup : this.jobGroups.values()) {
@@ -73,27 +69,15 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
     }
 
     @Override
-    /**
-     * Colocar os Workers a trabalharem de um determinado JG
-     */
-    //TODO executeJobGroup
-    public void executeJobGroup(int id) throws RemoteException {
-        JobGroupRI JG = jobGroups.get(id);
-        if (JG.hasTask()) {
-            jobGroups.get(id).execute();
-        }
-    }
-
-    @Override
     public void printALL() throws RemoteException {
-        for (JobGroupRI j:this.jobGroups.values()) {
+        for (JobGroupRI j : this.jobGroups.values()) {
             j.print();
         }
     }
 
     @Override
-    public void sendResult(WorkerRI bestWorker, Integer integer) throws RemoteException{
-        System.out.println(integer);
+    public void sendResult(WorkerRI bestWorker, int result) throws RemoteException {
+        System.out.println(result);
     }
 
 }

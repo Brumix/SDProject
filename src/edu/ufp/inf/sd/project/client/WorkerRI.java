@@ -8,4 +8,5 @@ public interface WorkerRI extends Remote {
     void runTS() throws RemoteException;
     void print(String msg) throws  RemoteException;
     void giveTask(File file)throws  RemoteException;
+    public String whoIAm() throws RemoteException;
 }

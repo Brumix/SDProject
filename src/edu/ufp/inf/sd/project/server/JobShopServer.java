@@ -89,7 +89,7 @@ public class JobShopServer {
 
                 //============ Rebind servant ============
                 //Naming.bind(serviceUrl, helloWorldRI);
-                registry.rebind(serviceUrl, jobShopFactoryImpl);
+                  registry.rebind(serviceUrl, jobShopFactoryImpl);
                 Logger.getLogger(this.getClass().getName()).log(Level.INFO, "service bound and running. :)");
             } else {
                 //System.out.println("HelloWorldServer - Constructor(): create registry on port 1099");

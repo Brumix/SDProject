@@ -35,6 +35,10 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
         System.out.println(msg);
     }
 
+    public String whoIAm() throws RemoteException {
+        return this.id +"com o trabalho" + this.path;
+    }
+
     @Override
     public void giveTask(File file) throws RemoteException {
         this.file = file;

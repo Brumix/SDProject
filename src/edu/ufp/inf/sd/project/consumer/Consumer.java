@@ -33,16 +33,19 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
-import edu.ufp.inf.sd.project.producer.Producer;
 
 import java.nio.charset.StandardCharsets;
 
 
 public class Consumer {
 
-    //private final static String QUEUE_NAME = "helloqueue";
+    private final  String QUEUE_NAME;
 
-    public static void main(String[] argv) throws Exception {
+    public Consumer(String queue_name) {
+        QUEUE_NAME = queue_name;
+    }
+
+    public void consume() throws Exception {
         try {
             /* Open a connection and a channel, and declare the queue from which to consume.
             Declare the queue here, as well, because we might start the client before the publisher. */
@@ -56,8 +59,8 @@ public class Consumer {
             Connection connection=factory.newConnection();
             Channel channel=connection.createChannel();
 
-            String resultsQueue = Producer.QUEUE_NAME + "_results";
-
+            String resultsQueue = this.QUEUE_NAME + "_results";
+            System.out.println(resultsQueue);
             channel.queueDeclare(resultsQueue, false, false, false, null);
             //channel.queueDeclare(Producer.QUEUE_NAME, true, false, false, null);
             System.out.println(" [*] Waiting for messages. To exit press CTRL+C");

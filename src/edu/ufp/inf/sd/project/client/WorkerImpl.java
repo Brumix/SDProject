@@ -1,5 +1,7 @@
 package edu.ufp.inf.sd.project.client;
 
+
+import edu.ufp.inf.sd.project.consumer.Consumer;
 import edu.ufp.inf.sd.project.server.JobGroup.JobGroupRI;
 import edu.ufp.inf.sd.project.util.geneticalgorithm.CrossoverStrategies;
 import edu.ufp.inf.sd.project.util.geneticalgorithm.GeneticAlgorithmJSSP;
@@ -31,6 +33,7 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
 
     public void runAlgorthim() throws RemoteException {
         this.thread.execute(this::runGN);
+
     }
 
     public void print(String msg) throws RemoteException {
@@ -66,7 +69,7 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
 
     }
 
-    private void update(Integer resultTS) throws RemoteException {
+    private void notify(Integer resultTS) throws RemoteException {
         this.jobGroup.update(this, resultTS);
     }
 
@@ -77,7 +80,7 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "[TS] Makespan for {0} = {1}", new Object[]{this.path, String.valueOf(makespan)});
         try {
             lock.lock();
-            update(makespan);
+            notify(makespan);
         } catch (RemoteException e) {
             e.printStackTrace();
         } finally {
@@ -91,19 +94,30 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
     }
 
     private void runGN() {
-        String queue = "jssp_ga";
-        String resultsQueue = queue + "_results";
-        CrossoverStrategies strategy = CrossoverStrategies.ONE;
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO,
-                "GA is running for {0}, check queue {1}",
-                new Object[]{this.path, resultsQueue});
+        try {
+            String resultsQueue = this.whoIAm() + "_results";
+            CrossoverStrategies strategy = CrossoverStrategies.ONE;
+            Logger.getLogger(this.getClass().getName()).log(Level.INFO,
+                    "GA is running for {0}, check queue {1}",
+                    new Object[]{this.path, resultsQueue});
 
-        GeneticAlgorithmJSSP ga = new GeneticAlgorithmJSSP(this.path, queue, strategy);
-        ga.run();
+            Consumer consumer = new Consumer(this.whoIAm());
+            consumer.consume();
+
+
+            GeneticAlgorithmJSSP ga = new GeneticAlgorithmJSSP(this.path, this.whoIAm(), strategy);
+            ga.run();
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
+
 
     @Override
     public void run() {
 
     }
+
 }

@@ -37,7 +37,7 @@ public class TabuSearchJSSP {
 
             process.waitFor();
 
-            int makespan = Integer.valueOf(firstLine);
+            int makespan = Integer.parseInt(firstLine);
 
             output.close();
 

@@ -1,5 +1,6 @@
 package edu.ufp.inf.sd.project.server.SessionJobShop;
 
+import edu.ufp.inf.sd.project.client.ClientRI;
 import edu.ufp.inf.sd.project.client.WorkerRI;
 import edu.ufp.inf.sd.project.server.Authentication.Factory.JobShopFactoryImpl;
 import edu.ufp.inf.sd.project.server.JobGroup.JobGroupImpl;
@@ -38,10 +39,10 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
     }
 
     @Override
-    public void createJobGroup(File Jss, int workers,int credits) {
+    public void createJobGroup(File Jss, int workers, int credits, ClientRI clientRI) {
         try {
             id++;
-            JobGroupRI JG = new JobGroupImpl(id, Jss, this, workers,credits);
+            JobGroupRI JG = new JobGroupImpl(id, Jss, this, workers, credits,clientRI);
             jobGroups.put(id, JG);
         } catch (Exception e) {
             e.printStackTrace();

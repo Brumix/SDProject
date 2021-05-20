@@ -29,7 +29,6 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
     private int totalCredits = 0;
     private HashMap<String, Integer> credits = new HashMap<>();
     private User user;
-    private String jsspInstancePath;
 
 
     public ClientImpl(SetupContextRMI contextRMI) throws RemoteException {
@@ -62,8 +61,8 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
 
     // todo delete
     // todo? preserve workers when i give to most workers for a job
-    // todo comunicate to the client the final result  (see function under)
-
+    // todo? the best result is 10% better than the TS
+    // todo consumer
     public void playService() {
         try {
 
@@ -84,13 +83,16 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
             this.totalCredits = new Scanner(System.in).nextInt();
 
             //================== Create JobGroup ===============
-            whatToDo(jobShopSessionRI);
+            while (true) {
+                whatToDo(jobShopSessionRI);
 
-            //==================Distribution of workers ===============
-            distributionOfWorkers(jobShopSessionRI, this.user.getName(), threadPool);
+                //==================Distribution of workers ===============
+                distributionOfWorkers(jobShopSessionRI, this.user.getName(), threadPool);
 
+            }
+            //  jobShopSessionRI.logout();
 
-            //  jobShopSessionRI.logout();    //============ Call GA ============
+            // ============ Call GA ============
         /*  String queue = "jssp_ga";
             String resultsQueue = queue + "_results";
             CrossoverStrategies strategy = CrossoverStrategies.ONE;
@@ -222,8 +224,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
                 int workers = new Scanner(System.in).nextInt();
                 String path = files.get(idFile);
                 if (getCredits(path, jobs, workers)) {
-                    jobShopSessionRI.createJobGroup(new File(path), workers,this.credits.get(path));
-                    this.jsspInstancePath = path;
+                    jobShopSessionRI.createJobGroup(new File(path), workers, this.credits.get(path), this);
                 }
             } else {
                 System.out.println("ID INVALID");
@@ -250,8 +251,8 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
 
     @Override
     //todo isn`t working, who to made the server send to the client the result
-    public void printResult(WorkerRI w, Integer result) throws RemoteException {
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO, w.whoIAm() + " com o resultado de " + result);
+    public void printResult(String path, Integer result) throws RemoteException {
+        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "  O resultado de " + result + " for the jopb" + path);
     }
 
     private boolean getCredits(String key, int Jobs, int workers) {
@@ -276,7 +277,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         while (true) {
             int leftCredits = this.totalCredits - credits - totalCreditsOffAllJG();
             if (leftCredits < 0) {
-                System.out.println("You don`t have enough credits,you just have " + this.totalCredits + " you need at least more " + (-leftCredits )+ ":(");
+                System.out.println("You don`t have enough credits,you just have " + this.totalCredits + " you need at least more " + (-leftCredits) + ":(");
                 System.out.println("you want to add more credits (0 ->no  1->yes) ?");
                 int choice = new Scanner(System.in).nextInt();
                 switch (choice) {

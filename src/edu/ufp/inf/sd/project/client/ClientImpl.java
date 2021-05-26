@@ -4,8 +4,6 @@ import edu.ufp.inf.sd.project.server.Authentication.Factory.JobShopFactoryRI;
 import edu.ufp.inf.sd.project.server.JobGroup.JobGroupRI;
 import edu.ufp.inf.sd.project.server.Models.User;
 import edu.ufp.inf.sd.project.server.SessionJobShop.JobShopSessionRI;
-import edu.ufp.inf.sd.project.util.geneticalgorithm.CrossoverStrategies;
-import edu.ufp.inf.sd.project.util.geneticalgorithm.GeneticAlgorithmJSSP;
 import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
 import edu.ufp.inf.sd.rmi.util.threading.ThreadPool;
 
@@ -152,7 +150,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
             int choise = new Scanner(System.in).nextInt();
             switch (choise) {
                 case 1:
-                    return autentication();
+                    return authentication();
                 case 2:
                     register();
                     break;
@@ -164,7 +162,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         }
     }
 
-    private JobShopSessionRI autentication() throws RemoteException {
+    private JobShopSessionRI authentication() throws RemoteException {
         System.out.println("Enter your username");
         String name = new Scanner(System.in).next();
         System.out.println("Enter your password");
@@ -250,7 +248,6 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
     }
 
     @Override
-    //todo isn`t working, who to made the server send to the client the result
     public void printResult(String path, Integer result) throws RemoteException {
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "  O resultado de " + result + " for the jopb" + path);
     }
@@ -305,6 +302,5 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         }
         return total;
     }
-
 
 }

@@ -33,7 +33,7 @@ out/**
 SDProject.iml
 
 # Scripts
-
+**/runscripts_rmi/**
 **/runscripts_rmq/**
 **/scriptsALL/**
 

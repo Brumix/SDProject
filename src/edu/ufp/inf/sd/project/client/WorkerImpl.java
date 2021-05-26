@@ -114,7 +114,6 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
         }
     }
 
-
     @Override
     public void run() {
 

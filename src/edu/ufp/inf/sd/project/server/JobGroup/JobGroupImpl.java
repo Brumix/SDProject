@@ -1,14 +1,10 @@
 package edu.ufp.inf.sd.project.server.JobGroup;
 
-import com.rabbitmq.client.Channel;
 import edu.ufp.inf.sd.project.client.ClientRI;
 import edu.ufp.inf.sd.project.client.WorkerRI;
-import edu.ufp.inf.sd.project.consumer.Consumer;
-import edu.ufp.inf.sd.project.producer.Producer;
 import edu.ufp.inf.sd.project.server.SessionJobShop.JobShopSessionRI;
 
 import java.io.File;
-import java.io.IOException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
@@ -25,17 +21,17 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
     private HashMap<WorkerRI, Integer> resultsWokers = new HashMap<>();
 
     private WorkerRI bestWorker;
-    private final ClientRI cliente;
+    private final ClientRI client;
 
 
-    public JobGroupImpl(int id, File JSS, JobShopSessionRI jobShopSession, int workers, int credits, ClientRI cliente) throws RemoteException {
+    public JobGroupImpl(int id, File JSS, JobShopSessionRI jobShopSession, int workers, int credits, ClientRI client) throws RemoteException {
         super();
         this.id = id;
         this.JSS = JSS;
         this.jobShopSession = jobShopSession;
         this.MaxWorkers = workers;
         this.credits = credits;
-        this.cliente = cliente;
+        this.client = client;
     }
 
     @Override
@@ -94,7 +90,7 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
     }
 
     private void sendResult() throws RemoteException {
-        this.cliente.printResult(this.JSS.getPath(), this.resultsWokers.get(this.bestWorker));
+        this.client.printResult(this.JSS.getPath(), this.resultsWokers.get(this.bestWorker));
     }
 
 

@@ -90,12 +90,12 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
     }
 
     @Override
-    public void deleteWorker(int id) throws RemoteException {
+    public void deleteJobGroup(int id) throws RemoteException {
         for (JobGroupRI job : jobGroups.values()) {
-            if (job.getId() == id) {
-                job.freeWorkers();
+            int jobId = job.getId();
+            if (jobId == id) {
+                jobGroups.remove(jobId);
             }
         }
-
     }
 }

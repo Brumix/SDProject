@@ -96,7 +96,6 @@ public class ThreadPool {
                     }
                     r = (Runnable) listRunnableThreads.removeFirst();
                 }
-
                 // Catch RuntimeException to avoid pool leaks
                 try {
                     r.run();

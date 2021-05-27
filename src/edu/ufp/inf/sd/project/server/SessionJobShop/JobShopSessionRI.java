@@ -26,7 +26,7 @@ public interface JobShopSessionRI extends Remote {
 
     ArrayList<String> getClientJobs(ClientRI client) throws RemoteException;
 
-    void deleteWorker(int id) throws  RemoteException;
+    void deleteJobGroup(int id) throws RemoteException;
 
 
 }

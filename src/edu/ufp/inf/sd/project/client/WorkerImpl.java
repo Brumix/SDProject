@@ -48,6 +48,11 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
     }
 
     @Override
+    public void getCredits(int value) throws RemoteException {
+            this.jobGroup.sendCredits(value,this);
+    }
+
+    @Override
     public void giveTask(File file) throws RemoteException {
         this.file = file;
         readFile();
@@ -97,7 +102,7 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
     }
 
     private void runGN() {
-        try {
+        try {//todo criar queue do jobGroup para o Worker
             String ID_QUEUE = this.id;
 
             this.resultQueue = ID_QUEUE + "_results";
@@ -109,14 +114,10 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
 
             new Thread(this::runGenetic).start();
 
-
             new Consumer(ID_QUEUE).consume();
 
             this.sendMessage(String.valueOf(CrossoverStrategies.THREE.strategy));
             Thread.sleep(4000);
-
-            this.sendMessage(String.valueOf(CrossoverStrategies.ONE.strategy));
-            Thread.sleep(10000);
             this.stopQueue();
 
         } catch (Exception e) {
@@ -130,11 +131,11 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
     }
 
     private void sendMessage(String message) {
-        new Producer(this.resultQueue, message);
+        new Producer(this.id, message);
     }
 
     private void stopQueue() {
-        new Producer(this.resultQueue, "stop");
+        new Producer(this.id, "stop");
     }
 
 

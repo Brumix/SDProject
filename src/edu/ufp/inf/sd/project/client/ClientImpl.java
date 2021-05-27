@@ -4,8 +4,6 @@ import edu.ufp.inf.sd.project.server.Authentication.Factory.JobShopFactoryRI;
 import edu.ufp.inf.sd.project.server.JobGroup.JobGroupRI;
 import edu.ufp.inf.sd.project.server.Models.User;
 import edu.ufp.inf.sd.project.server.SessionJobShop.JobShopSessionRI;
-import edu.ufp.inf.sd.project.util.geneticalgorithm.CrossoverStrategies;
-import edu.ufp.inf.sd.project.util.geneticalgorithm.GeneticAlgorithmJSSP;
 import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
 import edu.ufp.inf.sd.rmi.util.threading.ThreadPool;
 
@@ -14,10 +12,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Objects;
-import java.util.Scanner;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -60,48 +55,42 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
 
     }
 
-    // todo delete
-    // todo? preserve workers when i give to most workers for a job
+
     // todo? the best result is 10% better than the TS
     // todo consumer
     public void playService() {
         try {
-
-            //================== Remote Job Shop===============
-            this.jobShopFactoryRI.print("Remote Job Shop");
-            //================== Authentification ===============
-            JobShopSessionRI jobShopSessionRI = login();
-            jobShopSessionRI.print("Sou o client " + this.user.getName());
-
-
-            //================== Workers ===============
-            System.out.println("How many workers do you want to make available??");
-            this.numbWorkers = new Scanner(System.in).nextInt();
-            ThreadPool threadPool = new ThreadPool(this.numbWorkers);
-
-            //================== TotalCredits ===============
-            System.out.println("How many credits do you want to spend??");
-            this.totalCredits = new Scanner(System.in).nextInt();
-
-            //================== Create JobGroup ===============
             while (true) {
-                if (1 == whatToDo(jobShopSessionRI))
+                //================== Remote Job Shop===============
+                this.jobShopFactoryRI.print("Remote Job Shop");
+
+                //================== Authentification ===============
+                JobShopSessionRI jobShopSessionRI = login();
+                jobShopSessionRI.print("Sou o client " + this.user.getName());
+
+
+                //================== Workers ===============
+                System.out.println("How many workers do you want to make available??");
+                this.numbWorkers = new Scanner(System.in).nextInt();
+                ThreadPool threadPool = new ThreadPool(this.numbWorkers);
+
+                //================== TotalCredits ===============
+                System.out.println("How many credits do you want to spend??");
+                this.totalCredits = new Scanner(System.in).nextInt();
+
+                //================== Create JobGroup ===============
+                while (true) {
+                    System.out.println("You now this many credits: " + this.totalCredits);
+                    int flag = whatToDo(jobShopSessionRI);
+                    if (flag == 1)
                     //==================Distribution of workers ===============
-                    distributionOfWorkers(jobShopSessionRI, this.user.getName(), threadPool);
+                    {
+                        distributionOfWorkers(jobShopSessionRI, this.user.getName(), threadPool, this);
+                    } else if (flag == -1)
+                        break;
 
+                }
             }
-            //  jobShopSessionRI.logout();
-
-            // ============ Call GA ============
-        /*  String queue = "jssp_ga";
-            String resultsQueue = queue + "_results";
-            CrossoverStrategies strategy = CrossoverStrategies.ONE;
-            Logger.getLogger(this.getClass().getName()).log(Level.INFO,
-                    "GA is running for {0}, check queue {1}",
-                    new Object[]{this.jsspInstancePath, resultsQueue});
-
-            GeneticAlgorithmJSSP ga = new GeneticAlgorithmJSSP(this.jsspInstancePath, queue, strategy);
-            ga.run();*/
 
         } catch (RemoteException ex) {
             Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
@@ -112,7 +101,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         return jobShopSessionRI != null;
     }
 
-    private void distributionOfWorkers(JobShopSessionRI jobShopSessionRI, String nameU, ThreadPool threadPool) {
+    private void distributionOfWorkers(JobShopSessionRI jobShopSessionRI, String nameU, ThreadPool threadPool, ClientRI clientRI) {
         int freeWorkers = this.numbWorkers;
         try {
             while (freeWorkers > 0) {
@@ -131,7 +120,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
                 JobGroupRI jobGroup = jobShopSessionRI.getJobGroup(jgId);
                 if (jobGroup != null) {
                     for (int i = 0; i < workers; i++) {
-                        jobGroup.attach(new WorkerImpl(nameU + i, threadPool, jobGroup));
+                        jobGroup.attach(new WorkerImpl(nameU + i, threadPool, jobGroup), clientRI);
                     }
                     freeWorkers -= workers;
                 }
@@ -202,7 +191,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
             switch (choise) {
                 case 1:
                     jobShopSessionRI.logout();
-                    System.exit(200);
+                    return -1;
                 case 2:
                     createJobGroup(jobShopSessionRI);
                     return 1;
@@ -238,11 +227,9 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
                 i--;
             }
         }
-
     }
 
     private HashMap<Integer, String> listJobsFromFolder() {
-        //todo how to fix absolute path
         //Creating a File object for directory
         File directoryPath = new File(DATA_PATH);
         HashMap<Integer, String> files = new HashMap<>();
@@ -259,6 +246,11 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
     @Override
     public void printResult(String path, Integer result) throws RemoteException {
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "  The best result was " + result + " from the job " + path);
+    }
+
+    @Override
+    public void getCredits(int value) throws RemoteException {
+        this.totalCredits = this.totalCredits + value;
     }
 
     private boolean getCredits(String key, int Jobs, int workers) {
@@ -341,9 +333,10 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
                 System.out.println(" You don`t have any work active in this moment :) \n");
                 return false;
             }
-            for (String job : clientJobs) {
-                System.out.println(job);
-            }
+            clientJobs.forEach(System.out::println);
+            // for (String job : clientJobs) {
+            //     System.out.println(job);
+            // }
         } catch (RemoteException e) {
             e.printStackTrace();
         }
@@ -354,10 +347,17 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         try {
             System.out.println("\nWrite the index of the job that you want to delete?");
             int choice = new Scanner(System.in).nextInt();
-            jobShopSessionRI.deleteWorker(choice);
+            jobShopSessionRI.deleteJobGroup(choice);
         } catch (RemoteException e) {
             e.printStackTrace();
         }
 
+    }
+
+    @Override
+    public void sendCredits(int value) throws RemoteException {
+        System.out.println("##############" + this.totalCredits);
+        this.totalCredits = this.totalCredits - value;
+        System.out.println("##############" + this.totalCredits);
     }
 }

@@ -31,16 +31,21 @@ import java.util.logging.Logger;
  */
 public class Producer {
 
-    /*+ name of the queue */
-    public final static String QUEUE_NAME="jssp_ga";
+    private final String QUEUE_NAME;
 
-    public static void main(String[] argv) {
+    public Producer(String queue_name, String message) {
+        this.QUEUE_NAME = queue_name;
+        InitConnection(message);
+    }
+
+
+    public void InitConnection(String message) {
         //Connection connection=null;
         //Channel channel=null;
 
         /* Create a connection to the server (abstracts the socket connection,
            protocol version negotiation and authentication, etc.) */
-        ConnectionFactory factory=new ConnectionFactory();
+        ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("localhost");
         factory.setUsername("guest");
         factory.setPassword("guest");
@@ -48,45 +53,23 @@ public class Producer {
         //factory.setPassword("guest4rabbitmq");
 
         /* try-with-resources\. will close resources automatically in reverse order... avoids finally */
-        try (//Create a channel, which is where most of the API resides
-             Connection connection=factory.newConnection();
-             Channel channel=connection.createChannel()
+        try (Connection connection = factory.newConnection();
+             Channel channel = connection.createChannel()
         ) {
+            //Create a channel, which is where most of the API resides
             /* We must declare a queue to send to; this is idempotent, i.e.,
             it will only be created if it doesn't exist already;
             then we can publish a message to the queue; The message content is a
             byte array (can encode whatever we need). */
-            channel.queueDeclare(QUEUE_NAME, false, false, false, null);
-            //channel.queueDeclare(QUEUE_NAME, true, false, false, null);
+            channel.queueDeclare(this.QUEUE_NAME, false, false, false, null);
 
-            // Change strategy to CrossoverStrategies.TWO
-            sendMessage(channel, String.valueOf(CrossoverStrategies.TWO.strategy));
-            Thread.currentThread().sleep(2000);
+            // Sending message to the queue
+            channel.basicPublish("", this.QUEUE_NAME, null, message.getBytes(StandardCharsets.UTF_8));
+            System.out.println(" [x] Sent '" + message + "'");
 
-            // Change strategy to CrossoverStrategies.THREE
-            sendMessage(channel, String.valueOf(CrossoverStrategies.THREE.strategy));
-            Thread.currentThread().sleep(2000);
-
-
-            // Stop the GA
-            sendMessage(channel, "stop");
-
-        } catch (IOException | TimeoutException | InterruptedException e) {
+        } catch (IOException | TimeoutException e) {
             Logger.getLogger(Producer.class.getName()).log(Level.INFO, e.toString());
-        } /* The try-with-resources will close resources automatically in reverse order
-            finally {
-            try {
-                // Lastly, we close the channel and the connection
-                if (channel != null) { channel.close(); }
-                if (connection != null) { connection.close(); }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        } */
+        }
     }
 
-    public static void sendMessage(Channel channel, String message) throws IOException {
-        channel.basicPublish("", QUEUE_NAME, null, message.getBytes(StandardCharsets.UTF_8));
-        System.out.println(" [x] Sent '" + message + "'");
-    }
 }

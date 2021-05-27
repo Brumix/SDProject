@@ -14,6 +14,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.Scanner;
@@ -84,10 +85,9 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
 
             //================== Create JobGroup ===============
             while (true) {
-                whatToDo(jobShopSessionRI);
-
-                //==================Distribution of workers ===============
-                distributionOfWorkers(jobShopSessionRI, this.user.getName(), threadPool);
+                if (1 == whatToDo(jobShopSessionRI))
+                    //==================Distribution of workers ===============
+                    distributionOfWorkers(jobShopSessionRI, this.user.getName(), threadPool);
 
             }
             //  jobShopSessionRI.logout();
@@ -189,26 +189,33 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         this.jobShopFactoryRI.register(new User(name, pass));
     }
 
-    private void whatToDo(JobShopSessionRI jobShopSessionRI) throws RemoteException {
-        System.out.println("#########MENU#######");
-        System.out.println("Choose a option");
-        System.out.println("Logout ->1");
-        System.out.println("Create JobGroups ->2");
-        System.out.println("Just Work ->3");
-        System.out.println("######################");
-        int choise = new Scanner(System.in).nextInt();
-        switch (choise) {
-            case 1:
-                jobShopSessionRI.logout();
-                System.exit(200);
-            case 2:
-                createJobGroup(jobShopSessionRI);
-                return;
-            case 3:
-                return;
-            default:
-                System.out.println("Incorrect choice,try again");
+    private int whatToDo(JobShopSessionRI jobShopSessionRI) throws RemoteException {
+        while (true) {
+            System.out.println("#########MENU#######");
+            System.out.println("Choose a option");
+            System.out.println("Logout ->1");
+            System.out.println("Create JobGroups ->2");
+            System.out.println("Just Work ->3");
+            System.out.println("See my jobs ->4");
+            System.out.println("######################");
+            int choise = new Scanner(System.in).nextInt();
+            switch (choise) {
+                case 1:
+                    jobShopSessionRI.logout();
+                    System.exit(200);
+                case 2:
+                    createJobGroup(jobShopSessionRI);
+                    return 1;
+                case 3:
+                    return 1;
+                case 4:
+                    myJobsManager(jobShopSessionRI);
+                    return 0;
+                default:
+                    System.out.println("Incorrect choice,try again");
+            }
         }
+
     }
 
     private void createJobGroup(JobShopSessionRI jobShopSessionRI) throws RemoteException {
@@ -250,9 +257,8 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
     }
 
     @Override
-    //todo isn`t working, who to made the server send to the client the result
     public void printResult(String path, Integer result) throws RemoteException {
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "  O resultado de " + result + " for the jopb" + path);
+        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "  The best result was " + result + " from the job " + path);
     }
 
     private boolean getCredits(String key, int Jobs, int workers) {
@@ -306,5 +312,52 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         return total;
     }
 
+    private void myJobsManager(JobShopSessionRI jobShopSessionRI) {
+        if (listMyJobs(jobShopSessionRI))
+            askDeleteWorkers(jobShopSessionRI);
 
+    }
+
+    private void askDeleteWorkers(JobShopSessionRI jobShopSessionRI) {
+        System.out.println("Do you want to delete any job?");
+        System.out.println("Yes ->1");
+        System.out.println("No ->0");
+        int choise = new Scanner(System.in).nextInt();
+        switch (choise) {
+            case 0:
+                return;
+            case 1:
+                deleteWorkers(jobShopSessionRI);
+                return;
+            default:
+                System.out.println("Incorrect choice,try again");
+        }
+    }
+
+    private boolean listMyJobs(JobShopSessionRI jobShopSessionRI) {
+        try {
+            ArrayList<String> clientJobs = jobShopSessionRI.getClientJobs(this);
+            if (clientJobs.size() < 1) {
+                System.out.println(" You don`t have any work active in this moment :) \n");
+                return false;
+            }
+            for (String job : clientJobs) {
+                System.out.println(job);
+            }
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+    private void deleteWorkers(JobShopSessionRI jobShopSessionRI) {
+        try {
+            System.out.println("\nWrite the index of the job that you want to delete?");
+            int choice = new Scanner(System.in).nextInt();
+            jobShopSessionRI.deleteWorker(choice);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+
+    }
 }

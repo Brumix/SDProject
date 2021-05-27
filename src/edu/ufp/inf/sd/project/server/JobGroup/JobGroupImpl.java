@@ -79,9 +79,10 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
     }
 
     public void update(WorkerRI w, int result) throws RemoteException {
-        resultsWokers.put(w, result);
+        this.resultsWokers.put(w, result);
         if (resultsWokers.size() == observer.size()) {
             int smallers = resultsWokers.get(this.observer.get(0));
+            this.bestWorker = this.observer.get(0);
             for (WorkerRI worker : resultsWokers.keySet()) {
                 int value = resultsWokers.get(worker);
                 if (value < smallers) {
@@ -93,8 +94,32 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
         }
     }
 
+    @Override
+    public ClientRI getClient() throws RemoteException {
+        return this.cliente;
+    }
+
+    @Override
+    public int getId() throws RemoteException {
+        return this.id;
+    }
+
+    @Override
+    public String whoIam() throws RemoteException {
+        StringBuilder builder = new StringBuilder();
+        builder.append(this.id);
+        builder.append(" com o job ");
+        builder.append(this.JSS.getPath());
+        return builder.toString();
+    }
+
     private void sendResult() throws RemoteException {
         this.cliente.printResult(this.JSS.getPath(), this.resultsWokers.get(this.bestWorker));
+    }
+
+    @Override
+    public void freeWorkers() throws RemoteException {
+        System.out.println(" Not Done !!!!!");
     }
 
 

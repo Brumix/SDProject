@@ -2,6 +2,7 @@ package edu.ufp.inf.sd.project.client;
 
 
 import edu.ufp.inf.sd.project.consumer.Consumer;
+import edu.ufp.inf.sd.project.producer.Producer;
 import edu.ufp.inf.sd.project.server.JobGroup.JobGroupRI;
 import edu.ufp.inf.sd.project.util.geneticalgorithm.CrossoverStrategies;
 import edu.ufp.inf.sd.project.util.geneticalgorithm.GeneticAlgorithmJSSP;
@@ -10,6 +11,7 @@ import edu.ufp.inf.sd.rmi.util.threading.ThreadPool;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Scanner;
@@ -21,6 +23,7 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
 
     private File file;
     private final String id;
+    private String resultQueue;
     private String path;
     private final ThreadPool thread;
     private final JobGroupRI jobGroup;
@@ -32,7 +35,7 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
     }
 
     public void runAlgorthim() throws RemoteException {
-        this.thread.execute(this::runGN);
+        this.thread.execute(this::runTS);
 
     }
 
@@ -95,29 +98,48 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
 
     private void runGN() {
         try {
-            String resultsQueue = this.whoIAm() + "_results";
-            CrossoverStrategies strategy = CrossoverStrategies.ONE;
+            String ID_QUEUE = this.id;
+
+            this.resultQueue = ID_QUEUE + "_results";
+
             Logger.getLogger(this.getClass().getName()).log(Level.INFO,
                     "GA is running for {0}, check queue {1}",
-                    new Object[]{this.path, resultsQueue});
-
-            Consumer consumer = new Consumer(this.whoIAm());
-            consumer.consume();
+                    new Object[]{this.path, this.resultQueue});
 
 
-            GeneticAlgorithmJSSP ga = new GeneticAlgorithmJSSP(this.path, this.whoIAm(), strategy);
-            ga.run();
+            new Thread(this::runGenetic).start();
 
+
+            new Consumer(ID_QUEUE).consume();
+
+            this.sendMessage(String.valueOf(CrossoverStrategies.THREE.strategy));
+            Thread.sleep(4000);
+
+            this.sendMessage(String.valueOf(CrossoverStrategies.ONE.strategy));
+            Thread.sleep(10000);
+            this.stopQueue();
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-
     @Override
     public void run() {
 
+    }
+
+    private void sendMessage(String message) {
+        new Producer(this.resultQueue, message);
+    }
+
+    private void stopQueue() {
+        new Producer(this.resultQueue, "stop");
+    }
+
+
+    private void runGenetic() {
+        new GeneticAlgorithmJSSP(this.path, this.id, CrossoverStrategies.ONE).run();
     }
 
 }

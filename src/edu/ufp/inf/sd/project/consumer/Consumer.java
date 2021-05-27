@@ -45,7 +45,7 @@ public class Consumer {
         QUEUE_NAME = queue_name;
     }
 
-    public void consume() throws Exception {
+    public void consume() {
         try {
             /* Open a connection and a channel, and declare the queue from which to consume.
             Declare the queue here, as well, because we might start the client before the publisher. */
@@ -74,7 +74,7 @@ public class Consumer {
                     System.out.println(" [x] Received '" + message + "'");
                 }
             };
-            channel.basicConsume(Producer.QUEUE_NAME, true, client    );
+            channel.basicConsume(Producer.QUEUE_NAME, true, client );
             */
 
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {

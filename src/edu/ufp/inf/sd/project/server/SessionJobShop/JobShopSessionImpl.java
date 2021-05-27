@@ -10,6 +10,7 @@ import edu.ufp.inf.sd.project.server.Models.User;
 import java.io.File;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,7 +43,7 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
     public void createJobGroup(File Jss, int workers, int credits, ClientRI clientRI) {
         try {
             id++;
-            JobGroupRI JG = new JobGroupImpl(id, Jss, this, workers, credits,clientRI);
+            JobGroupRI JG = new JobGroupImpl(id, Jss, this, workers, credits, clientRI);
             jobGroups.put(id, JG);
         } catch (Exception e) {
             e.printStackTrace();
@@ -73,5 +74,28 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
     @Override
     public void sendResult(WorkerRI bestWorker, int result) throws RemoteException {
         System.out.println("The best result was " + result);
+    }
+
+    @Override
+    public ArrayList<String> getClientJobs(ClientRI client) throws RemoteException {
+        ArrayList<String> clientJobs = new ArrayList<>();
+
+        for (JobGroupRI job : jobGroups.values()) {
+            if (job.getClient().equals(client)) {
+                clientJobs.add(job.whoIam());
+            }
+        }
+
+        return clientJobs;
+    }
+
+    @Override
+    public void deleteWorker(int id) throws RemoteException {
+        for (JobGroupRI job : jobGroups.values()) {
+            if (job.getId() == id) {
+                job.freeWorkers();
+            }
+        }
+
     }
 }

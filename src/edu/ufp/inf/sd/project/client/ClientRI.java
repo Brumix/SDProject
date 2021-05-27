@@ -5,4 +5,5 @@ import java.rmi.RemoteException;
 
 public interface ClientRI extends Remote {
     void printResult(String path, Integer result)throws RemoteException;
+
 }

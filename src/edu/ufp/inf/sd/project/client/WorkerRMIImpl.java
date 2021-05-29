@@ -11,7 +11,6 @@ import edu.ufp.inf.sd.rmi.util.threading.ThreadPool;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Scanner;
@@ -19,16 +18,15 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnable {
+public class WorkerRMIImpl extends UnicastRemoteObject implements WorkerRMIRI, Runnable {
 
     private File file;
     private final String id;
-    private String resultQueue;
     private String path;
     private final ThreadPool thread;
     private final JobGroupRI jobGroup;
 
-    public WorkerImpl(String id, ThreadPool thread, JobGroupRI jobGroupRI) throws RemoteException {
+    public WorkerRMIImpl(String id, ThreadPool thread, JobGroupRI jobGroupRI) throws RemoteException {
         this.id = id;
         this.thread = thread;
         this.jobGroup = jobGroupRI;
@@ -36,7 +34,6 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
 
     public void runAlgorthim() throws RemoteException {
         this.thread.execute(this::runTS);
-
     }
 
     public void print(String msg) throws RemoteException {
@@ -101,46 +98,8 @@ public class WorkerImpl extends UnicastRemoteObject implements WorkerRI, Runnabl
         new File(this.path).delete();
     }
 
-    private void runGN() {
-        try {//todo criar queue do jobGroup para o Worker
-            String ID_QUEUE = this.id;
-
-            this.resultQueue = ID_QUEUE + "_results";
-
-            Logger.getLogger(this.getClass().getName()).log(Level.INFO,
-                    "GA is running for {0}, check queue {1}",
-                    new Object[]{this.path, this.resultQueue});
-
-
-            new Thread(this::runGenetic).start();
-
-            new Consumer(ID_QUEUE).consume();
-
-            this.sendMessage(String.valueOf(CrossoverStrategies.THREE.strategy));
-            Thread.sleep(4000);
-            this.stopQueue();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     @Override
     public void run() {
 
     }
-
-    private void sendMessage(String message) {
-        new Producer(this.id, message);
-    }
-
-    private void stopQueue() {
-        new Producer(this.id, "stop");
-    }
-
-
-    private void runGenetic() {
-        new GeneticAlgorithmJSSP(this.path, this.id, CrossoverStrategies.ONE).run();
-    }
-
 }

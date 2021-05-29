@@ -1,7 +1,7 @@
 package edu.ufp.inf.sd.project.server.SessionJobShop;
 
 import edu.ufp.inf.sd.project.client.ClientRI;
-import edu.ufp.inf.sd.project.client.WorkerRI;
+import edu.ufp.inf.sd.project.client.WorkerRMIRI;
 import edu.ufp.inf.sd.project.server.Authentication.Factory.JobShopFactoryImpl;
 import edu.ufp.inf.sd.project.server.JobGroup.JobGroupImpl;
 import edu.ufp.inf.sd.project.server.JobGroup.JobGroupRI;
@@ -72,7 +72,7 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
     }
 
     @Override
-    public void sendResult(WorkerRI bestWorker, int result) throws RemoteException {
+    public void sendResult(WorkerRMIRI bestWorker, int result) throws RemoteException {
         System.out.println("The best result was " + result);
     }
 

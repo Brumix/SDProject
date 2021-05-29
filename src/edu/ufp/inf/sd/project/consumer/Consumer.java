@@ -65,21 +65,11 @@ public class Consumer {
             //channel.queueDeclare(Producer.QUEUE_NAME, true, false, false, null);
             System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
 
-            /* The server pushes messages asynchronously, hence we provide a
-            DefaultConsumer callback that will buffer the messages until we're ready to use them.
-            Consumer client = new DefaultConsumer(channel) {
-                @Override
-                public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
-                    String message=new String(body, "UTF-8");
-                    System.out.println(" [x] Received '" + message + "'");
-                }
-            };
-            channel.basicConsume(Producer.QUEUE_NAME, true, client );
-            */
 
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
                 String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
                 System.out.println(" [x] Received '" + message + "'");
+
             };
             channel.basicConsume(resultsQueue, true, deliverCallback, consumerTag -> { });
 

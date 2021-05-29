@@ -1,5 +1,6 @@
 package edu.ufp.inf.sd.project.client;
 
+import edu.ufp.inf.sd.project.producer.Producer;
 import edu.ufp.inf.sd.project.server.Authentication.Factory.JobShopFactoryRI;
 import edu.ufp.inf.sd.project.server.JobGroup.JobGroupRI;
 import edu.ufp.inf.sd.project.server.Models.User;
@@ -56,52 +57,51 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
     }
 
 
-    // todo? the best result is 10% better than the TS
-    // todo consumer
-    public void playService() {
-        try {
+    // todo pensar na logica
+    // todo tirar creditos do rabbit
+    public void playService() throws RemoteException {
+
+
+        while (true) {
+
+            //================== Remote Job Shop===============
+            this.jobShopFactoryRI.print("Remote Job Shop");
+
+            //================== Authentification ===============
+            JobShopSessionRI jobShopSessionRI = login();
+            jobShopSessionRI.print("Sou o client " + this.user.getName());
+
+
+            //================== Workers ===============
+            System.out.println("How many workers do you want to make available??");
+            this.numbWorkers = new Scanner(System.in).nextInt();
+
+
+            //================== TotalCredits ===============
+            System.out.println("How many credits do you want to spend??");
+            this.totalCredits = new Scanner(System.in).nextInt();
+
+            //================== Create JobGroup ===============
             while (true) {
-                //================== Remote Job Shop===============
-                this.jobShopFactoryRI.print("Remote Job Shop");
+                System.out.println("You now have this many credits: " + this.totalCredits);
+                int flag = whatToDo(jobShopSessionRI);
+                if (flag == 1)
+                //==================Distribution of workers ===============
+                {
+                    distributionOfWorkers(jobShopSessionRI);
+                } else if (flag == -1)
+                    break;
 
-                //================== Authentification ===============
-                JobShopSessionRI jobShopSessionRI = login();
-                jobShopSessionRI.print("Sou o client " + this.user.getName());
-
-
-                //================== Workers ===============
-                System.out.println("How many workers do you want to make available??");
-                this.numbWorkers = new Scanner(System.in).nextInt();
-                ThreadPool threadPool = new ThreadPool(this.numbWorkers);
-
-                //================== TotalCredits ===============
-                System.out.println("How many credits do you want to spend??");
-                this.totalCredits = new Scanner(System.in).nextInt();
-
-                //================== Create JobGroup ===============
-                while (true) {
-                    System.out.println("You now this many credits: " + this.totalCredits);
-                    int flag = whatToDo(jobShopSessionRI);
-                    if (flag == 1)
-                    //==================Distribution of workers ===============
-                    {
-                        distributionOfWorkers(jobShopSessionRI, this.user.getName(), threadPool, this);
-                    } else if (flag == -1)
-                        break;
-
-                }
             }
-
-        } catch (RemoteException ex) {
-            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
         }
+
     }
 
     private boolean verifySession(JobShopSessionRI jobShopSessionRI) {
         return jobShopSessionRI != null;
     }
 
-    private void distributionOfWorkers(JobShopSessionRI jobShopSessionRI, String nameU, ThreadPool threadPool, ClientRI clientRI) {
+    private void distributionOfWorkers(JobShopSessionRI jobShopSessionRI) {
         int freeWorkers = this.numbWorkers;
         try {
             while (freeWorkers > 0) {
@@ -119,9 +119,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
                 int jgId = new Scanner(System.in).nextInt();
                 JobGroupRI jobGroup = jobShopSessionRI.getJobGroup(jgId);
                 if (jobGroup != null) {
-                    for (int i = 0; i < workers; i++) {
-                        jobGroup.attach(new WorkerImpl(nameU + i, threadPool, jobGroup), clientRI);
-                    }
+                    jobGroup.createWorkers(workers,this);
                     freeWorkers -= workers;
                 }
             }
@@ -356,8 +354,22 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
 
     @Override
     public void sendCredits(int value) throws RemoteException {
-        System.out.println("##############" + this.totalCredits);
         this.totalCredits = this.totalCredits - value;
-        System.out.println("##############" + this.totalCredits);
+    }
+
+
+    public void createWorkers(String idQueue, int totalWorkers, JobGroupRI jobGroup) throws RemoteException {
+        int RmiWorkers = (int) Math.floor((double) totalWorkers / 2);
+        int RabbitWorkers = totalWorkers - RmiWorkers;
+        ThreadPool threadPool = new ThreadPool(RmiWorkers);
+        for (int i = 0; i < RabbitWorkers; i++) {
+            WorkerRabbitRI rabbit = new WorkerRabbitImpl();
+            String rabbitId = rabbit.getPersonalId();
+            new Thread(rabbit).start();
+            jobGroup.attach(rabbitId,this);
+        }
+        for (int i = 0; i < RmiWorkers; i++) {
+            jobGroup.attach(new WorkerRMIImpl(this.user.getName() + i, threadPool, jobGroup), this);
+        }
     }
 }

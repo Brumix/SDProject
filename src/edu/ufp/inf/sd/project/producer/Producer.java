@@ -39,7 +39,7 @@ public class Producer {
     }
 
 
-    public void InitConnection(String message) {
+    private void InitConnection(String message) {
         //Connection connection=null;
         //Channel channel=null;
 
@@ -65,7 +65,7 @@ public class Producer {
 
             // Sending message to the queue
             channel.basicPublish("", this.QUEUE_NAME, null, message.getBytes(StandardCharsets.UTF_8));
-            System.out.println(" [x] Sent '" + message + "'");
+            System.out.println(" [x] Sent '" + message.split("@")[0] + "'");
 
         } catch (IOException | TimeoutException e) {
             Logger.getLogger(Producer.class.getName()).log(Level.INFO, e.toString());

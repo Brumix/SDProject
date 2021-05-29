@@ -309,6 +309,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
     }
 
     private void askDeleteWorkers(JobShopSessionRI jobShopSessionRI) {
+        // todo check for RABBIT
         System.out.println("Do you want to delete any job?");
         System.out.println("Yes ->1");
         System.out.println("No ->0");
@@ -363,6 +364,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         int RabbitWorkers = totalWorkers - RmiWorkers;
         ThreadPool threadPool = new ThreadPool(RmiWorkers);
         for (int i = 0; i < RabbitWorkers; i++) {
+            //todo change to rabbit
             WorkerRabbitRI rabbit = new WorkerRabbitImpl();
             String rabbitId = rabbit.getPersonalId();
             new Thread(rabbit).start();

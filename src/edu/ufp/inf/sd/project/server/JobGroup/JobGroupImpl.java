@@ -65,6 +65,7 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
 
     @Override
     public void attach(String id, ClientRI client) throws RemoteException {
+        //todo change to rabbit
         this.RabbitObservers.put(id, client);
         triggerNotifyAll();
     }
@@ -171,6 +172,7 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
         if (this.bestGenetic == null)
             this.cliente.printResult(this.JSS.getPath(), this.resultsWokers.get(this.bestWorker));
         if (this.bestWorker == null)
+            //todo change to Rabbit
             this.cliente.printResult(this.JSS.getPath(), this.bestGenetic.getResult());
     }
 
@@ -249,6 +251,7 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
 
     private void sendCreditGen(String message) throws RemoteException {
         String[] info = message.split(" @");
+        //todo change to Rabbit
         this.RabbitObservers.get(info[1].trim()).getCredits(Integer.parseInt(info[2].trim()));
     }
 
@@ -308,7 +311,6 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
             new Producer(id, "stop");
         }
     }
-
 
     private void notifyWinnerGEN() throws RemoteException {
         for (String id : this.RabbitObservers.keySet()) {

@@ -7,4 +7,5 @@ import java.rmi.RemoteException;
 
 public interface WorkerRabbitRI extends Remote,Runnable {
     String getPersonalId() throws RemoteException;
+    String getQueuId()throws  RemoteException;
 }

@@ -10,4 +10,5 @@ public interface ClientRI extends Remote {
     void getCredits(int value) throws RemoteException;
     void sendCredits(int value) throws RemoteException;
     void createWorkers(String idQueue, int totalWorkers, JobGroupRI jobGroup)throws RemoteException;
+    String getName()throws RemoteException;
 }

@@ -21,6 +21,7 @@ import java.util.logging.Logger;
 public class WorkerRabbitImpl implements WorkerRabbitRI, Runnable {
 
     private final String idRabbit;
+    private final String idQUEUE;
     private final String idGenetic = UUID.randomUUID().toString();
     private String idJobGrooup;
     private String resultQueue;
@@ -29,7 +30,8 @@ public class WorkerRabbitImpl implements WorkerRabbitRI, Runnable {
     /**
      * Gerar id unico para worker
      */
-    public WorkerRabbitImpl() {
+    public WorkerRabbitImpl(String id) {
+        this.idQUEUE = id;
         this.idRabbit = UUID.randomUUID().toString();
     }
 
@@ -47,37 +49,38 @@ public class WorkerRabbitImpl implements WorkerRabbitRI, Runnable {
             factory.setUsername("guest");
             factory.setPassword("guest");
             //factory.setPassword("guest4rabbitmq");
+
             Connection connection = factory.newConnection();
             Channel channel = connection.createChannel();
 
+            String exchangeName = this.idQUEUE;
 
-            String resultsQueue = this.idRabbit;
-            System.out.println(resultsQueue);
-            channel.queueDeclare(resultsQueue, false, false, false, null);
-            //channel.queueDeclare(Producer.QUEUE_NAME, true, false, false, null);
-            System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
+            channel.exchangeDeclare(exchangeName, BuiltinExchangeType.FANOUT);
 
-            /* The server pushes messages asynchronously, hence we provide a
-            DefaultConsumer callback that will buffer the messages until we're ready to use them.
-            Consumer client = new DefaultConsumer(channel) {
-                @Override
-                public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
-                    String message=new String(body, "UTF-8");
-                    System.out.println(" [x] Received '" + message + "'");
-                }
-            };
-            channel.basicConsume(Producer.QUEUE_NAME, true, client );
-            */
+            String queueName = channel.queueDeclare().getQueue();
+
+            String routingKey = "";
+
+            channel.queueBind(queueName, exchangeName, routingKey);
+
+            Logger.getAnonymousLogger().log(Level.INFO, Thread.currentThread().getName()
+                    + ":Will create Deliver Callback ...");
+            System.out.println("[*] Waiting for messages. To exit press CTRL+C");
 
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
                 String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-                System.out.println(" [x] Received '" + message.split("@")[0] + "'");
-                // executing the messages
-                switchComands(message);
+                String identity = message.split("@")[0].trim();
+                if ("ALL".equals(identity) || this.idRabbit.equals(identity)) {
+                    System.out.println("[*] Received FANOUT '" + message.split("@")[1].trim() + "'");
+                    switchComands(message);
+                }
             };
-            channel.basicConsume(resultsQueue, true, deliverCallback, consumerTag -> {
-            });
 
+            CancelCallback cancelCallback = (consumerTag) -> {
+                System.out.println("[*] Consumer Tag[" + consumerTag + "- Canccel Callback invoked!");
+            };
+
+            channel.basicConsume(queueName, true, deliverCallback, cancelCallback);
 
         } catch (Exception e) {
             //Logger.getLogger(Recv.class.getName()).log(Level.INFO, e.toString());
@@ -87,6 +90,7 @@ public class WorkerRabbitImpl implements WorkerRabbitRI, Runnable {
 
     /**
      * iniciar conexão com o worker
+     *
      * @param queue
      */
     public void connectionGenectic(String queue) {
@@ -134,28 +138,29 @@ public class WorkerRabbitImpl implements WorkerRabbitRI, Runnable {
 
     /**
      * Executar comandos atraves de mensagens
+     *
      * @param message
      */
     private void switchComands(String message) {
         String[] comand = message.split("@");
-        switch (comand[0].trim()) {
+        switch (comand[1].trim()) {
             case "start":
                 runGN();
                 break;
             case "file":
-                storeFile(comand[1].trim());
+                storeFile(comand[2].trim());
                 break;
             case "JobGroup":
-                this.idJobGrooup = comand[1].trim();
+                this.idJobGrooup = comand[2].trim();
                 break;
             case "Strategy":
-                new Producer(this.idGenetic, comand[1].trim());
+                new Producer(this.idGenetic, comand[2].trim());
                 break;
             case "stop":
                 stopQueue();
                 break;
             case "result":
-                getCredits(comand[1].trim());
+                getCredits(comand[2].trim());
                 break;
             default:
                 System.out.println(message);
@@ -165,7 +170,8 @@ public class WorkerRabbitImpl implements WorkerRabbitRI, Runnable {
     }
 
     /**
-     *  dar creditos
+     * dar creditos
+     *
      * @param reward
      */
     private void getCredits(String reward) {
@@ -201,13 +207,11 @@ public class WorkerRabbitImpl implements WorkerRabbitRI, Runnable {
         return this.idRabbit;
     }
 
-    /**
-     * Enviar mensagem
-     * @param message (mensagem a enviar)
-     */
-    private void sendMessage(String message) {
-        new Producer(this.idGenetic, message);
+    @Override
+    public String getQueuId() throws RemoteException {
+        return this.idQUEUE;
     }
+
 
     /**
      * envia mensagem para parar a queue
@@ -225,6 +229,7 @@ public class WorkerRabbitImpl implements WorkerRabbitRI, Runnable {
 
     /**
      * guardar o ficheiro temporario
+     *
      * @param data
      */
     private void storeFile(String data) {
@@ -241,6 +246,7 @@ public class WorkerRabbitImpl implements WorkerRabbitRI, Runnable {
 
     /**
      * obtem parametros da mensagem
+     *
      * @param message
      */
     private void parseResult(String message) {

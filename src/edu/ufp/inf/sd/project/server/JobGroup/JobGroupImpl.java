@@ -6,8 +6,8 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
 import edu.ufp.inf.sd.project.client.ClientRI;
 import edu.ufp.inf.sd.project.client.WorkerRMIRI;
-import edu.ufp.inf.sd.project.client.WorkerRabbitRI;
 import edu.ufp.inf.sd.project.producer.Producer;
+import edu.ufp.inf.sd.project.producer.ProducerFANOUT;
 import edu.ufp.inf.sd.project.server.Models.ResultGenetic;
 import edu.ufp.inf.sd.project.server.SessionJobShop.JobShopSessionRI;
 
@@ -15,11 +15,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.time.LocalTime;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,6 +26,7 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
 
     private final int REWARDWINNER = 11;
     private final int REWARDLOSER = 1;
+    private final String idQueue;
     private final String FILE_PATH = "/home/lenovo/IdeaProjects/SDProject/src/edu/ufp/inf/sd/project/server/data/";
     private final int id;
     private final JobShopSessionRI jobShopSession;
@@ -53,6 +52,7 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
         this.MaxWorkers = workers;
         this.credits = credits;
         this.cliente = cliente;
+        this.idQueue = this.getId() + this.getClient().getName();
         this.consumeJobGroup();
     }
 
@@ -109,9 +109,7 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
             for (WorkerRMIRI w : this.observer) {
                 w.giveTask(this.JSS);
             }
-            for (String id : this.RabbitObservers.keySet()) {
-                notiffyGenetic(id);
-            }
+            notiffyGenetic(this.idQueue);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -129,9 +127,9 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
             while (myReader.hasNextLine()) {
                 data.append(myReader.nextLine()).append("\n");
             }
-            new Producer(id, "JobGroup @" + this.id);
-            new Producer(id, " file @ " + data);
-            new Producer(id, "start");
+            new ProducerFANOUT(id, " ALL @ JobGroup @" + this.id);
+            new ProducerFANOUT(id, "ALL @ file @ " + data);
+            new ProducerFANOUT(id, "ALL @ start");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -246,7 +244,7 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
         if (this.bestGenetic == null)
             this.cliente.printResult(this.JSS.getPath(), this.resultsWokers.get(this.bestWorker));
         if (this.bestWorker == null)
-            new Producer(this.RabbitObservers.get(this.bestGenetic.getId()), "winner @ " + this.JSS.getPath() + " @ " + this.bestGenetic.getResult());
+            new ProducerFANOUT(this.idQueue, this.RabbitObservers.get(this.bestGenetic.getId()) + " @ winner @ " + this.JSS.getPath() + " @ " + this.bestGenetic.getResult());
     }
 
     /**
@@ -328,8 +326,6 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
 
                 if (message.split(" @")[0].trim().equals("client")) {
                     String[] info = message.split("@");
-                    System.out.println(Arrays.toString(info));
-
                     this.attach(info[2].trim(), info[1].trim());
                 }
 
@@ -359,7 +355,7 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
      */
     private void sendCreditGen(String message) throws RemoteException {
         String[] info = message.split(" @");
-        new Producer(this.RabbitObservers.get(info[1].trim()), "GetCredits @ " + info[2].trim());
+        new Producer(this.idQueue, this.RabbitObservers.get(info[1].trim())+" @ GetCredits @ " + info[2].trim());
     }
 
     /**
@@ -399,10 +395,10 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
                 if (current.getTrie() % 3 == 0 || (current.getResult() - 50) > this.goal) {
                     if (current.getChangestrategie() > 3 || current.getTrie() > 10) {
                         current.close();
-                        new Producer(current.getId(), "stop");
+                        new ProducerFANOUT(this.idQueue, current.getId() + " @ stop");
                     } else {
                         // o jobgroup e que esta a dizer ao worker que estrategia optar
-                        new Producer(current.getId(), "Strategy @ " + current.nextStrategy().strategy);
+                        new ProducerFANOUT(this.idQueue, current.getId() + " @ Strategy @ " + current.nextStrategy().strategy);
                     }
                 }
                 if (this.bestWorker != null && this.resultsWokers.get(this.bestWorker) <= this.goal) {
@@ -424,9 +420,7 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
      * envia mensagem de stop para parar
      */
     private void stopQueues() {
-        for (String id : this.RabbitObservers.keySet()) {
-            new Producer(id, "stop");
-        }
+        new ProducerFANOUT(this.idQueue, "ALL @ stop");
     }
 
     /**
@@ -437,9 +431,9 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
     private void notifyWinnerGEN() throws RemoteException {
         for (String id : this.RabbitObservers.keySet()) {
             if (id.equals(this.bestGenetic.getId()))
-                new Producer(id, "result @ " + REWARDWINNER);
+                new ProducerFANOUT(this.idQueue, id + " @ result @ " + REWARDWINNER);
             else
-                new Producer(id, "result @ " + REWARDLOSER);
+                new ProducerFANOUT(this.idQueue, id + " @ result @ " + REWARDLOSER);
         }
 
         for (WorkerRMIRI workerRMIRI : this.observer) {
@@ -459,10 +453,7 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
             else
                 workerRMIRI.getCredits(REWARDLOSER);
         }
-        for (String id : this.RabbitObservers.keySet()) {
-            new Producer(id, "result @ " + REWARDLOSER);
-        }
-
+        new ProducerFANOUT(this.idQueue, "ALL @ result @ " + REWARDLOSER);
     }
 
     /**
@@ -503,7 +494,7 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
         for (ResultGenetic result : this.resultGenetics.values()) {
             String stuck = result.isqueueStuck();
             if (stuck != null) {
-                new Producer(result.getId(), "stop");
+                new ProducerFANOUT(this.idQueue, result.getId() + " @ stop");
             }
         }
     }

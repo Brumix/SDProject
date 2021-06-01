@@ -1,5 +1,6 @@
 package edu.ufp.inf.sd.project.producer;
 
+import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -61,7 +62,8 @@ public class Producer {
             it will only be created if it doesn't exist already;
             then we can publish a message to the queue; The message content is a
             byte array (can encode whatever we need). */
-            channel.queueDeclare(this.QUEUE_NAME, false, false, false, null);
+           // channel.queueDeclare(this.QUEUE_NAME, false, false, false, null);
+            channel.exchangeDeclare(this.QUEUE_NAME,BuiltinExchangeType.FANOUT);
 
             // Sending message to the queue
             channel.basicPublish("", this.QUEUE_NAME, null, message.getBytes(StandardCharsets.UTF_8));

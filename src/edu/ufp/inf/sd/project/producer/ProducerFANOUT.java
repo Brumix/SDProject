@@ -15,7 +15,7 @@ public class ProducerFANOUT {
     private final String QUEUE_NAME;
 
 
-    public ProducerFANOUT(String queue_name,String message) {
+    public ProducerFANOUT(String queue_name, String message) {
         QUEUE_NAME = queue_name;
         InitConnection(message);
     }
@@ -38,16 +38,16 @@ public class ProducerFANOUT {
              Channel channel = connection.createChannel()
         ) {
 
-            System.out.println("[*] Declare exchange:'"+exchangeName+"'of type "
-                    + BuiltinExchangeType.FANOUT.toString());
+            // System.out.println("[*] Declare exchange:'"+exchangeName+"'of type "
+            //        + BuiltinExchangeType.FANOUT);
 
 
-            channel.exchangeDeclare(exchangeName,BuiltinExchangeType.FANOUT);
+            channel.exchangeDeclare(exchangeName, BuiltinExchangeType.FANOUT);
 
 
-            String routingKey="";
-            channel.basicPublish(exchangeName,routingKey,null,message.getBytes(StandardCharsets.UTF_8));
-            System.out.println("[*] Sent:'"+message+"'");
+            String routingKey = "";
+            channel.basicPublish(exchangeName, routingKey, null, message.getBytes(StandardCharsets.UTF_8));
+            System.out.println("[*] Sent:'" + message.split("@")[1].trim() + "'");
         } catch (IOException | TimeoutException e) {
             Logger.getLogger(Producer.class.getName()).log(Level.INFO, e.toString());
         }

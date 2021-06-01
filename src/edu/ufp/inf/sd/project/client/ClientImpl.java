@@ -18,7 +18,10 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Objects;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -507,7 +510,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         int RabbitWorkers = totalWorkers - RmiWorkers;
         ThreadPool threadPool = new ThreadPool(RmiWorkers);
         for (int i = 0; i < RabbitWorkers; i++) {
-            WorkerRabbitRI rabbit = new WorkerRabbitImpl();
+            WorkerRabbitRI rabbit = new WorkerRabbitImpl(jobGroup.getId() + jobGroup.getClient().getName());
             String rabbitId = rabbit.getPersonalId();
             new Thread(rabbit).start();
             new Producer(String.valueOf(jobGroup.getId()), "client @ " + this.user.getName() + " @  " + rabbitId);
@@ -515,5 +518,11 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         for (int i = 0; i < RmiWorkers; i++) {
             jobGroup.attach(new WorkerRMIImpl(this.user.getName() + i, threadPool, jobGroup), this);
         }
+    }
+
+
+    @Override
+    public String getName() throws RemoteException {
+        return user.getName();
     }
 }

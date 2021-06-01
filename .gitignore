@@ -18,6 +18,11 @@
 *.zip
 *.tar.gz
 *.rar
+*.js
+*.html
+*.css
+element-list
+
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
@@ -36,5 +41,9 @@ SDProject.iml
 **/runscripts_rmi/**
 **/runscripts_rmq/**
 **/scriptsALL/**
+**/edu/**
+**/index-files/**
+**/jquery/**
+**/resources/**
 
 **/backup/**

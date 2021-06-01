@@ -32,30 +32,54 @@ public class WorkerRMIImpl extends UnicastRemoteObject implements WorkerRMIRI, R
         this.jobGroup = jobGroupRI;
     }
 
+    /**
+     * corre o tabu search
+     * @throws RemoteException
+     */
     public void runAlgorthim() throws RemoteException {
         this.thread.execute(this::runTS);
     }
 
+    /**
+     * imprime mensagem
+     * @param msg
+     * @throws RemoteException
+     */
     public void print(String msg) throws RemoteException {
         System.out.println(msg);
     }
 
+    /**
+     * Retorna mensagem com id unico e caminho para o ficheiro que está a trabalhar
+     * @return
+     * @throws RemoteException
+     */
     public String whoIAm() throws RemoteException {
         return this.id + "com o trabalho" + this.path;
     }
 
     @Override
+    /**
+     *para o client receber os creditos do seu worker
+     */
     public void getCredits(int value) throws RemoteException {
             this.jobGroup.sendCredits(value,this);
     }
 
     @Override
+    /**
+     * da um ficheiro para o worker trabalhar
+     */
     public void giveTask(File file) throws RemoteException {
         this.file = file;
         readFile();
         runAlgorthim();
     }
 
+    /**
+     * Ler ficheiro
+     * @throws RemoteException
+     */
     private void readFile() throws RemoteException {
         try {
             Scanner myReader = new Scanner(this.file);
@@ -71,12 +95,20 @@ public class WorkerRMIImpl extends UnicastRemoteObject implements WorkerRMIRI, R
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 
+    /**
+     * Notificar jobgroup
+     * @param resultTS
+     * @throws RemoteException
+     */
     private void notify(Integer resultTS) throws RemoteException {
         this.jobGroup.update(this, resultTS);
     }
+
+    /**
+     * algoritmo tabu search com trinco
+     */
 
     public void runTS() {
         TabuSearchJSSP ts = new TabuSearchJSSP(this.path);
@@ -94,6 +126,9 @@ public class WorkerRMIImpl extends UnicastRemoteObject implements WorkerRMIRI, R
         }
     }
 
+    /**
+     * eliminar ficheiro
+     */
     private void cleanUp() {
         new File(this.path).delete();
     }

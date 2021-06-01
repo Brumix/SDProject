@@ -10,7 +10,6 @@ import java.util.UUID;
 public interface JobGroupRI extends Remote {
 
      void attach(WorkerRMIRI w, ClientRI c)throws RemoteException;
-     void attach(String id,ClientRI client)throws RemoteException;
      void print()throws RemoteException;
      String JobGroupStr() throws RemoteException;
      void notifyall()throws RemoteException;

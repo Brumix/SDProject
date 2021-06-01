@@ -33,12 +33,23 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "[Session] = {0}", new Object[]{msg});
     }
 
+    /**
+     *remove o login do username
+     * @throws RemoteException
+     */
     @Override
     public void logout() throws RemoteException {
         jobShopFactoryImpl.remove(this.user.getName());
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "[" + user.getName() + "]" + "Logged out Successfully!");
     }
 
+    /**
+     * cria um job group para um client
+     * @param Jss ficheiro que quer que execute
+     * @param workers nr de workers
+     * @param credits
+     * @param clientRI cliente que os criou
+     */
     @Override
     public void createJobGroup(File Jss, int workers, int credits, ClientRI clientRI) {
         try {
@@ -50,6 +61,11 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
         }
     }
 
+    /**
+     * lista os jobs groups de um  client
+     * @return
+     * @throws RemoteException
+     */
     @Override
     public String listJobGroups() throws RemoteException {
         StringBuilder list = new StringBuilder();
@@ -60,11 +76,17 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
     }
 
     @Override
+    /**
+     * obter jobgroup por id
+     */
     public JobGroupRI getJobGroup(int id) throws RemoteException {
         return jobGroups.get(id);
     }
 
     @Override
+    /**
+     * imprimir todos os jobgroups
+     */
     public void printALL() throws RemoteException {
         for (JobGroupRI j : this.jobGroups.values()) {
             j.print();
@@ -72,11 +94,17 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
     }
 
     @Override
+    /**
+     * enviar melhor resultado
+     */
     public void sendResult(WorkerRMIRI bestWorker, int result) throws RemoteException {
         System.out.println("The best result was " + result);
     }
 
     @Override
+    /**
+     * listar jobgroups de um determinado cliente
+     */
     public ArrayList<String> getClientJobs(ClientRI client) throws RemoteException {
         ArrayList<String> clientJobs = new ArrayList<>();
 
@@ -85,11 +113,13 @@ public class JobShopSessionImpl extends UnicastRemoteObject implements JobShopSe
                 clientJobs.add(job.whoIam());
             }
         }
-
         return clientJobs;
     }
 
     @Override
+    /**
+     * eliminar jobgroup
+     */
     public void deleteJobGroup(int id) throws RemoteException {
         for (JobGroupRI job : jobGroups.values()) {
             int jobId = job.getId();

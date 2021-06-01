@@ -26,10 +26,16 @@ public class WorkerRabbitImpl implements WorkerRabbitRI, Runnable {
     private String resultQueue;
     private String path;
 
+    /**
+     * Gerar id unico para worker
+     */
     public WorkerRabbitImpl() {
         this.idRabbit = UUID.randomUUID().toString();
     }
 
+    /**
+     * Inicia a conexao com a queue
+     */
     public void InitConsumer() {
         try {
             /* Open a connection and a channel, and declare the queue from which to consume.
@@ -79,6 +85,10 @@ public class WorkerRabbitImpl implements WorkerRabbitRI, Runnable {
         }
     }
 
+    /**
+     * iniciar conexão com o worker
+     * @param queue
+     */
     public void connectionGenectic(String queue) {
         try {
             /* Open a connection and a channel, and declare the queue from which to consume.
@@ -115,10 +125,17 @@ public class WorkerRabbitImpl implements WorkerRabbitRI, Runnable {
     }
 
     @Override
+    /**
+     * Executar consumidor
+     */
     public void run() {
         InitConsumer();
     }
 
+    /**
+     * Executar comandos atraves de mensagens
+     * @param message
+     */
     private void switchComands(String message) {
         String[] comand = message.split("@");
         switch (comand[0].trim()) {
@@ -147,10 +164,17 @@ public class WorkerRabbitImpl implements WorkerRabbitRI, Runnable {
 
     }
 
+    /**
+     *  dar creditos
+     * @param reward
+     */
     private void getCredits(String reward) {
         new Producer(this.idJobGrooup, "reward @ " + this.idRabbit + " @" + reward);
     }
 
+    /**
+     * Executar genetic algorithm numa nova thread
+     */
     private void runGN() {
         try {
             String ID_QUEUE = this.idGenetic;
@@ -170,22 +194,39 @@ public class WorkerRabbitImpl implements WorkerRabbitRI, Runnable {
     }
 
     @Override
+    /**
+     * Obter Id unico
+     */
     public String getPersonalId() throws RemoteException {
         return this.idRabbit;
     }
 
+    /**
+     * Enviar mensagem
+     * @param message (mensagem a enviar)
+     */
     private void sendMessage(String message) {
         new Producer(this.idGenetic, message);
     }
 
+    /**
+     * envia mensagem para parar a queue
+     */
     private void stopQueue() {
         new Producer(this.idGenetic, "stop");
     }
 
+    /**
+     * executar algoritmo genetico com a primeira estratégia
+     */
     private void runGenetic() {
         new GeneticAlgorithmJSSP(this.path, this.idGenetic, CrossoverStrategies.ONE).run();
     }
 
+    /**
+     * guardar o ficheiro temporario
+     * @param data
+     */
     private void storeFile(String data) {
         try {
             String namefile = new File(" ").getAbsolutePath().trim() + this.idRabbit + ".txt";
@@ -198,7 +239,10 @@ public class WorkerRabbitImpl implements WorkerRabbitRI, Runnable {
         }
     }
 
-
+    /**
+     * obtem parametros da mensagem
+     * @param message
+     */
     private void parseResult(String message) {
         String[] result = message.split("=");
         if (result[0].trim().equals("Makespan"))

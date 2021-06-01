@@ -35,7 +35,7 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
     private final int credits;
     private int MaxWorkers;
     private ArrayList<WorkerRMIRI> observer = new ArrayList<>();
-    private Map<String, ClientRI> RabbitObservers = new HashMap<>();
+    private Map<String, String> RabbitObservers = new HashMap<>();
     private HashMap<WorkerRMIRI, Integer> resultsWokers = new HashMap<>();
     private WorkerRMIRI bestWorker = null;
     private ResultGenetic bestGenetic = null;
@@ -53,9 +53,13 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
         this.MaxWorkers = workers;
         this.credits = credits;
         this.cliente = cliente;
+        this.consumeJobGroup();
     }
 
     @Override
+    /**
+     * Associa Worker a um jobgroup
+     */
     public void attach(WorkerRMIRI w, ClientRI c) throws RemoteException {
 
         this.observer.add(w);
@@ -63,13 +67,21 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
         triggerNotifyAll();
     }
 
-    @Override
-    public void attach(String id, ClientRI client) throws RemoteException {
-        //todo change to rabbit
+    /**
+     * @param id
+     * @param client
+     * @throws RemoteException
+     */
+    public void attach(String id, String client) throws RemoteException {
         this.RabbitObservers.put(id, client);
         triggerNotifyAll();
     }
 
+    /**
+     * Notifica todos os workers de um jobgroup
+     *
+     * @throws RemoteException
+     */
     private void triggerNotifyAll() throws RemoteException {
         if (this.observer.size() + this.RabbitObservers.size() == this.MaxWorkers)
             this.notifyall();
@@ -81,10 +93,16 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
     }
 
     @Override
+    /**
+     * Imprime o id do jobgroup e o caminho para o ficheiro
+     */
     public String JobGroupStr() throws RemoteException {
         return "JobGroup :" + this.id + " with the work " + this.JSS + "\n";
     }
 
+    /**
+     * da um trabalho e notifica o rabbit a cada worker associado com cada padrao
+     */
     @Override
     public void notifyall() {
         try {
@@ -94,12 +112,16 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
             for (String id : this.RabbitObservers.keySet()) {
                 notiffyGenetic(id);
             }
-            this.consumeJobGroup();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * notifica o produtor  para começar a trabalhar
+     *
+     * @param id
+     */
     private void notiffyGenetic(String id) {
         try {
             Scanner myReader = new Scanner(this.JSS);
@@ -116,10 +138,19 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
     }
 
     @Override
+    /**
+     * verifica se o jobgroup possui algum trabalho
+     */
     public Boolean hasTask() throws RemoteException {
         return this.JSS != null;
     }
 
+    /**
+     * verifica qual o melhor resultado
+     *
+     * @param result
+     * @throws RemoteException
+     */
     public void update(WorkerRMIRI w, int result) throws RemoteException {
         this.resultsWokers.put(w, result);
         if (resultsWokers.size() == observer.size()) {
@@ -132,11 +163,29 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
                     smallers = value;
                 }
             }
-            this.goal = Math.min(this.goal, smallers);
+            //modificado
+            if (this.goal == -1)
+                this.goal = smallers;
+            else
+                this.goal = Math.min(this.goal, smallers);
             cleanUp();
+        }
+        if (this.bestGenetic != null) {
+            if (this.bestGenetic.getResult() < this.resultsWokers.get(this.bestWorker)) {
+                this.bestWorker = null;
+            } else {
+                this.bestGenetic = null;
+            }
+            sendResult();
         }
     }
 
+    /**
+     * retorna  o cliente
+     *
+     * @return
+     * @throws RemoteException
+     */
     @Override
     public ClientRI getClient() throws RemoteException {
         return this.cliente;
@@ -147,6 +196,12 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
         return this.id;
     }
 
+    /**
+     * serve para identificar o job group
+     *
+     * @return
+     * @throws RemoteException
+     */
     @Override
     public String whoIam() throws RemoteException {
         StringBuilder builder = new StringBuilder();
@@ -156,26 +211,50 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
         return builder.toString();
     }
 
+    /**
+     * envia para o client os seus respetivos creditos por cada worker
+     *
+     * @param value
+     * @param w
+     * @throws RemoteException
+     */
     @Override
     public void sendCredits(int value, WorkerRMIRI w) throws RemoteException {
         this.OnwersOfTheWorkes.get(w).getCredits(value);
     }
 
+    /**
+     * diz ao cliente que tem q iniciar x workers
+     *
+     * @param workers
+     * @param cliente
+     * @throws RemoteException
+     */
     @Override
     public void createWorkers(int workers, ClientRI cliente) throws RemoteException {
         cliente.createWorkers(String.valueOf(this.id), workers, this);
     }
 
+    /**
+     * manda o resultado vencedor para o cliente
+     *
+     * @throws RemoteException
+     */
     private void sendResult() throws RemoteException {
         this.cliente.sendCredits(this.credits);
         distributeCredits();
         if (this.bestGenetic == null)
             this.cliente.printResult(this.JSS.getPath(), this.resultsWokers.get(this.bestWorker));
         if (this.bestWorker == null)
-            //todo change to Rabbit
-            this.cliente.printResult(this.JSS.getPath(), this.bestGenetic.getResult());
+            new Producer(this.RabbitObservers.get(this.bestGenetic.getId()), "winner @ " + this.JSS.getPath() + " @ " + this.bestGenetic.getResult());
     }
 
+    /**
+     * Guarda ficheiro do lado do servidor
+     *
+     * @param jss
+     * @return
+     */
     private File storeFile(File jss) {
         try {
             Scanner myReader = new Scanner(jss);
@@ -187,7 +266,6 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
             FileWriter fr = new FileWriter(file);
             fr.write(data.toString());
             fr.close();
-
             return file;
         } catch (IOException e) {
             e.printStackTrace();
@@ -195,6 +273,11 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
         return null;
     }
 
+    /**
+     * Elimina o jobgroup e a respetiva sessao
+     *
+     * @throws RemoteException
+     */
     private void cleanUp() throws RemoteException {
         if (this.JSS.delete()) {
             Logger.getLogger(this.getClass().getName()).log(Level.INFO, "[Deleted the file:" + this.JSS.getName() + "]");
@@ -205,6 +288,11 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
 
     }
 
+    /**
+     * atribuir creditos de compensação aos workers
+     *
+     * @throws RemoteException
+     */
     private void distributeCredits() throws RemoteException {
         if (this.bestWorker != null)
             notiffyWInnerTABU();
@@ -212,6 +300,9 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
             notifyWinnerGEN();
     }
 
+    /**
+     * Cria conecao com a queue
+     */
     private void consumeJobGroup() {
         try {
             ConnectionFactory factory = new ConnectionFactory();
@@ -235,9 +326,20 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
                 String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
                 System.out.println(" [x] JobGroup '" + message + "'");
 
+                if (message.split(" @")[0].trim().equals("client")) {
+                    String[] info = message.split("@");
+                    System.out.println(Arrays.toString(info));
+
+                    this.attach(info[2].trim(), info[1].trim());
+                }
+
                 if (message.split(" @")[0].trim().equals("reward"))
                     sendCreditGen(message);
-                StategyJobGroup(message);
+                try {
+                    StategyJobGroup(message);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
             };
             channel.basicConsume(resultsQueue, true, deliverCallback, consumerTag -> {
@@ -249,14 +351,25 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
         }
     }
 
+    /**
+     * send message to the client saing the winner
+     *
+     * @param message
+     * @throws RemoteException
+     */
     private void sendCreditGen(String message) throws RemoteException {
         String[] info = message.split(" @");
-        //todo change to Rabbit
-        this.RabbitObservers.get(info[1].trim()).getCredits(Integer.parseInt(info[2].trim()));
+        new Producer(this.RabbitObservers.get(info[1].trim()), "GetCredits @ " + info[2].trim());
     }
 
-    private void StategyJobGroup(String message) throws RemoteException {
-        // todo better stategy ??
+    /**
+     * Strategy for managing the genetic Algorithm
+     *
+     * @param message msage from the queue
+     * @throws RemoteException
+     * @throws InterruptedException
+     */
+    private void StategyJobGroup(String message) throws RemoteException, InterruptedException {
         String[] value = message.split("@");
         if (value[0].trim().equals("result Worker")) {
             String idWorker = value[1].trim();
@@ -288,12 +401,13 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
                         current.close();
                         new Producer(current.getId(), "stop");
                     } else {
-
+                        // o jobgroup e que esta a dizer ao worker que estrategia optar
                         new Producer(current.getId(), "Strategy @ " + current.nextStrategy().strategy);
                     }
                 }
                 if (this.bestWorker != null && this.resultsWokers.get(this.bestWorker) <= this.goal) {
                     stopQueues();
+                    Thread.sleep(2000);
                     this.bestGenetic = null;
                     sendResult();
                 }
@@ -306,16 +420,26 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
         }
     }
 
+    /**
+     * envia mensagem de stop para parar
+     */
     private void stopQueues() {
         for (String id : this.RabbitObservers.keySet()) {
             new Producer(id, "stop");
         }
     }
 
+    /**
+     * notificar todos os workers do jobgroup
+     *
+     * @throws RemoteException
+     */
     private void notifyWinnerGEN() throws RemoteException {
         for (String id : this.RabbitObservers.keySet()) {
             if (id.equals(this.bestGenetic.getId()))
                 new Producer(id, "result @ " + REWARDWINNER);
+            else
+                new Producer(id, "result @ " + REWARDLOSER);
         }
 
         for (WorkerRMIRI workerRMIRI : this.observer) {
@@ -323,6 +447,11 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
         }
     }
 
+    /**
+     * Notificar todos os workers do jobgroup e atribuir repetivas recompensas
+     *
+     * @throws RemoteException
+     */
     private void notiffyWInnerTABU() throws RemoteException {
         for (WorkerRMIRI workerRMIRI : this.observer) {
             if (workerRMIRI.equals(this.bestWorker))
@@ -336,6 +465,13 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
 
     }
 
+    /**
+     * atualiza resultados do algorimto genetico
+     *
+     * @param id
+     * @param result
+     * @return
+     */
     private ResultGenetic updateResultGenetic(String id, int result) {
 
         if (this.resultGenetics.containsKey(id)) {
@@ -346,6 +482,12 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
         return this.resultGenetics.get(id);
     }
 
+    /**
+     * verifica se existe queues ativas
+     *
+     * @return
+     */
+
     private boolean checkConection() {
         for (ResultGenetic current : this.resultGenetics.values()) {
             if (current.getStatus() == 1)
@@ -354,6 +496,9 @@ public class JobGroupImpl extends UnicastRemoteObject implements JobGroupRI {
         return false;
     }
 
+    /**
+     * verifica se a funçao ficou presa
+     */
     private void checkQueuesStuck() {
         for (ResultGenetic result : this.resultGenetics.values()) {
             String stuck = result.isqueueStuck();

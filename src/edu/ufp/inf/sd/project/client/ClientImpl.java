@@ -1,5 +1,9 @@
 package edu.ufp.inf.sd.project.client;
 
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.DeliverCallback;
 import edu.ufp.inf.sd.project.producer.Producer;
 import edu.ufp.inf.sd.project.server.Authentication.Factory.JobShopFactoryRI;
 import edu.ufp.inf.sd.project.server.JobGroup.JobGroupRI;
@@ -9,6 +13,7 @@ import edu.ufp.inf.sd.rmi.util.rmisetup.SetupContextRMI;
 import edu.ufp.inf.sd.rmi.util.threading.ThreadPool;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
@@ -56,11 +61,13 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
 
     }
 
-
-    // todo pensar na logica
-    // todo tirar creditos do rabbit
+    /**
+     * Menu Inicial Em ciclo infinito
+     *
+     * @throws RemoteException
+     */
     public void playService() throws RemoteException {
-
+        boolean stateConection = false;
 
         while (true) {
 
@@ -88,6 +95,11 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
                 if (flag == 1)
                 //==================Distribution of workers ===============
                 {
+                    if (!stateConection) {
+                        InitConnection();
+                        stateConection = true;
+                    }
+
                     distributionOfWorkers(jobShopSessionRI);
                 } else if (flag == -1)
                     break;
@@ -97,10 +109,70 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
 
     }
 
+    /**
+     * cria coneccao com a queue
+     */
+    private void InitConnection() {
+        {
+            try {
+                ConnectionFactory factory = new ConnectionFactory();
+                factory.setHost("localhost");
+                //Use same username/passwd as the for accessing Management UI @ http://localhost:15672/
+                //Default credentials are: guest/guest (change accordingly)
+                factory.setUsername("guest");
+                factory.setPassword("guest");
+                //factory.setPassword("guest4rabbitmq");
+                Connection connection = factory.newConnection();
+                Channel channel = connection.createChannel();
+
+                String resultsQueue = String.valueOf(this.user.getName());
+                System.out.println(resultsQueue);
+                channel.queueDeclare(resultsQueue, false, false, false, null);
+                //channel.queueDeclare(Producer.QUEUE_NAME, true, false, false, null);
+                System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
+
+
+                DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+                    String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
+                    System.out.println(" [x] CLIENT '" + message + "'");
+                    String[] info = message.split("@");
+
+                    switch (info[0].trim()) {
+                        case "winner":
+                            this.printResult(info[1].trim(), Integer.parseInt(info[2].trim()));
+                            break;
+                        case "GetCredits":
+                            this.getCredits(Integer.parseInt(info[1].trim()));
+                            break;
+                    }
+
+
+                };
+                channel.basicConsume(resultsQueue, true, deliverCallback, consumerTag -> {
+                });
+
+            } catch (Exception e) {
+                //Logger.getLogger(Recv.class.getName()).log(Level.INFO, e.toString());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Verificar se a sessão é valida
+     *
+     * @param jobShopSessionRI
+     * @return
+     */
     private boolean verifySession(JobShopSessionRI jobShopSessionRI) {
         return jobShopSessionRI != null;
     }
 
+    /**
+     * Gere a distribuição de Workers pelos JobGroups
+     *
+     * @param jobShopSessionRI
+     */
     private void distributionOfWorkers(JobShopSessionRI jobShopSessionRI) {
         int freeWorkers = this.numbWorkers;
         try {
@@ -119,7 +191,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
                 int jgId = new Scanner(System.in).nextInt();
                 JobGroupRI jobGroup = jobShopSessionRI.getJobGroup(jgId);
                 if (jobGroup != null) {
-                    jobGroup.createWorkers(workers,this);
+                    jobGroup.createWorkers(workers, this);
                     freeWorkers -= workers;
                 }
             }
@@ -128,6 +200,12 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         }
     }
 
+    /**
+     * Menu de autenticação ou registo
+     *
+     * @return
+     * @throws RemoteException
+     */
     private JobShopSessionRI login() throws RemoteException {
         while (true) {
             System.out.println("#########MENU#######");
@@ -151,6 +229,12 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         }
     }
 
+    /**
+     * Requisita a introdução das credenciais para login
+     *
+     * @return JobShopSessionRI caso o cliente se encontrar registado
+     * @throws RemoteException
+     */
     private JobShopSessionRI autentication() throws RemoteException {
         System.out.println("Enter your username");
         String name = new Scanner(System.in).next();
@@ -168,6 +252,11 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         return null;
     }
 
+    /**
+     * Registo de clientes
+     *
+     * @throws RemoteException
+     */
     private void register() throws RemoteException {
         System.out.println("Enter a username");
         String name = new Scanner(System.in).next();
@@ -176,6 +265,13 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         this.jobShopFactoryRI.register(new User(name, pass));
     }
 
+    /**
+     * Menu de distribuição de workers e gestão de jobgroups
+     *
+     * @param jobShopSessionRI
+     * @return
+     * @throws RemoteException
+     */
     private int whatToDo(JobShopSessionRI jobShopSessionRI) throws RemoteException {
         while (true) {
             System.out.println("#########MENU#######");
@@ -205,6 +301,12 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
 
     }
 
+    /**
+     * Cria jobgroup para resolver um determinado ficheiro
+     *
+     * @param jobShopSessionRI
+     * @throws RemoteException
+     */
     private void createJobGroup(JobShopSessionRI jobShopSessionRI) throws RemoteException {
 
         System.out.println("How many jobGroups do you want to create?");
@@ -227,6 +329,11 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         }
     }
 
+    /**
+     * listar todos os ficheiros de uma pasta
+     *
+     * @return lista de ficheiros
+     */
     private HashMap<Integer, String> listJobsFromFolder() {
         //Creating a File object for directory
         File directoryPath = new File(DATA_PATH);
@@ -242,15 +349,29 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
     }
 
     @Override
+    /**
+     * Imprime o melhor resultado de um determinado jobgroup
+     */
     public void printResult(String path, Integer result) throws RemoteException {
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "  The best result was " + result + " from the job " + path);
     }
 
     @Override
+    /**
+     * Adicionar creditos a um cliente
+     */
     public void getCredits(int value) throws RemoteException {
         this.totalCredits = this.totalCredits + value;
     }
 
+    /**
+     * pede o valor minimo de creditos necessarios atraves do nr de workers que se encontram no jobgroup
+     *
+     * @param key     id do job group
+     * @param Jobs    numero de jobs groups
+     * @param workers numero de workers em todos os  jobgroup
+     * @return
+     */
     private boolean getCredits(String key, int Jobs, int workers) {
         int minCredits = (Jobs * 10) + workers;
         while (true) {
@@ -264,11 +385,17 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
                 System.out.println("Insufficient credits");
             } else {
                 return analyzeCredits(key, credits);
-
             }
         }
     }
 
+    /**
+     * Analise se o cliente possui creditos suficientes para um determinado jobgroup
+     *
+     * @param key     id do job group
+     * @param credits creditos minimos para jobgroup
+     * @return
+     */
     private boolean analyzeCredits(String key, int credits) {
         while (true) {
             int leftCredits = this.totalCredits - credits - totalCreditsOffAllJG();
@@ -294,6 +421,11 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         }
     }
 
+    /**
+     * Calcula o numero de creditos de um jobgroup
+     *
+     * @return
+     */
     private int totalCreditsOffAllJG() {
         int total = 0;
         for (int credit : this.credits.values()) {
@@ -305,11 +437,9 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
     private void myJobsManager(JobShopSessionRI jobShopSessionRI) {
         if (listMyJobs(jobShopSessionRI))
             askDeleteWorkers(jobShopSessionRI);
-
     }
 
     private void askDeleteWorkers(JobShopSessionRI jobShopSessionRI) {
-        // todo check for RABBIT
         System.out.println("Do you want to delete any job?");
         System.out.println("Yes ->1");
         System.out.println("No ->0");
@@ -325,6 +455,12 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
         }
     }
 
+    /**
+     * Lista todos os job groups de um client
+     *
+     * @param jobShopSessionRI
+     * @return
+     */
     private boolean listMyJobs(JobShopSessionRI jobShopSessionRI) {
         try {
             ArrayList<String> clientJobs = jobShopSessionRI.getClientJobs(this);
@@ -333,15 +469,17 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
                 return false;
             }
             clientJobs.forEach(System.out::println);
-            // for (String job : clientJobs) {
-            //     System.out.println(job);
-            // }
         } catch (RemoteException e) {
             e.printStackTrace();
         }
         return true;
     }
 
+    /**
+     * Eliminar worker de um jobgroup
+     *
+     * @param jobShopSessionRI
+     */
     private void deleteWorkers(JobShopSessionRI jobShopSessionRI) {
         try {
             System.out.println("\nWrite the index of the job that you want to delete?");
@@ -353,22 +491,26 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
 
     }
 
+    /**
+     * retira  os creditos do client
+     *
+     * @param value nr de creditos a subtrair
+     * @throws RemoteException
+     */
     @Override
     public void sendCredits(int value) throws RemoteException {
         this.totalCredits = this.totalCredits - value;
     }
-
 
     public void createWorkers(String idQueue, int totalWorkers, JobGroupRI jobGroup) throws RemoteException {
         int RmiWorkers = (int) Math.floor((double) totalWorkers / 2);
         int RabbitWorkers = totalWorkers - RmiWorkers;
         ThreadPool threadPool = new ThreadPool(RmiWorkers);
         for (int i = 0; i < RabbitWorkers; i++) {
-            //todo change to rabbit
             WorkerRabbitRI rabbit = new WorkerRabbitImpl();
             String rabbitId = rabbit.getPersonalId();
             new Thread(rabbit).start();
-            jobGroup.attach(rabbitId,this);
+            new Producer(String.valueOf(jobGroup.getId()), "client @ " + this.user.getName() + " @  " + rabbitId);
         }
         for (int i = 0; i < RmiWorkers; i++) {
             jobGroup.attach(new WorkerRMIImpl(this.user.getName() + i, threadPool, jobGroup), this);

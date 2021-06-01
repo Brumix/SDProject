@@ -25,6 +25,7 @@ import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+
 public class ClientImpl extends UnicastRemoteObject implements ClientRI {
 
     private final String DATA_PATH = "/home/lenovo/IdeaProjects/SDProject/src/edu/ufp/inf/sd/project/data/";
@@ -70,6 +71,8 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
      * @throws RemoteException
      */
     public void playService() throws RemoteException {
+
+
         boolean stateConection = false;
 
         while (true) {
@@ -109,6 +112,7 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
 
             }
         }
+
 
     }
 
@@ -498,7 +502,6 @@ public class ClientImpl extends UnicastRemoteObject implements ClientRI {
      * retira  os creditos do client
      *
      * @param value nr de creditos a subtrair
-     * @throws RemoteException
      */
     @Override
     public void sendCredits(int value) throws RemoteException {
